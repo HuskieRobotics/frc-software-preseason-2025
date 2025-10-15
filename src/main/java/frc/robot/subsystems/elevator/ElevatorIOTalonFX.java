@@ -1,7 +1,7 @@
 package frc.robot.subsystems.elevator;
 
 import static edu.wpi.first.units.Units.RotationsPerSecond;
-import static frc.robot.subsystems.Elevator.ElevatorConstants.*;
+import static frc.robot.subsystems.elevator.ElevatorConstants.*;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
@@ -25,4 +25,23 @@ import frc.lib.team3061.RobotConfig;
 import frc.lib.team3061.sim.VelocitySystemSim;
 import frc.lib.team6328.util.LoggedTunableNumber;
 import frc.robot.Constants;
+import com.ctre.phoenix6.controls.MotionMagicExpo;
 
+public class ElevatorIOTalonFX implements ElevatorIO(){
+    //Lead motor
+    private final TalonFX leadMotor; 
+    private final TalonFX followerMotor;
+
+    private VoltageOut elevatorVoltageRequest;
+    private MotionMagicExpo elevatorPositionRequest;
+    
+    private Alert elevatorConfigAlert = 
+        new Alert("Failed to apply configuration for elevator.", AlertType.kError);
+    
+    private StatusSignal<Volts> leadMotorStatorCurrent;
+    private StatusSignal<Volts> leadMotorVoltageSupplyCurrent;
+    private StatusSignal<Amps> leadMotorSupplyCurrent;
+    private StatusSignal<Temperature> leadMotorTemp;
+    private StatusSignal<RPS> leadMotorVelocity;
+    private StatusSignal<Position> leadMotorPosition;
+}
