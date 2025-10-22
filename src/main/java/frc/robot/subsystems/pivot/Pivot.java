@@ -42,7 +42,7 @@ public class Pivot extends SubsystemBase {
   private PivotIO io;
 
   // all subsystems create the AutoLogged version of their IO inputs class
-  private final PivotIOInputsAutologged inputs = new PivotIOInputsAutoLogged();
+  private final PivotIOInputsAutoLogged inputs = new PivotIOInputsAutoLogged();
 
   // When initially testing a mechanism, it is best to manually provide a voltage or current to
   // verify the mechanical functionality. At times, this can be done via Phoenix Tuner. However,

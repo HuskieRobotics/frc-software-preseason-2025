@@ -20,10 +20,15 @@ public interface PivotIO {
     double closedLoopReferenceAngleDegrees = 0.0;   
     double angleMotorTemperatureCelsius = 0.0;
     double positionAngleDegrees = 0.0;  
-    
+    double angleDegrees= 0.0;
+    double angleMotorReferenceAngleDegrees;
+
+
     boolean connected = false;
   }
 
   public default void setVoltage(double voltage) {}
   public default void setAngle(Angle angle) {}
+  public default void updateInputs(PivotIOInputs inputs) {}
+  public Object setAngleMotorVoltage(double in);
 }

@@ -35,50 +35,53 @@ import frc.robot.Constants;
 public class PivotIOTalonFX implements PivotIO {
 
   // We usually use MotionMagic Expo voltage to control the position of a mechanism.
-  private MotionMagicExpoVoltage angleMotorPositionRequest;
-  private VoltageOut angleMotorVoltageRequest;
+    private MotionMagicExpoVoltage angleMotorPositionRequest;
+    private VoltageOut angleMotorVoltageRequest;
+  
+    private StatusSignal<Current> angleMotorStatorCurrentStatusSignal;
+    private StatusSignal<Current> angleMotorSupplyCurrentStatusSignal;
+    private StatusSignal<Angle> angleMotorPositionStatusSignal;
+    private StatusSignal<Temperature> angleMotorTemperatureStatusSignal;
+    private StatusSignal<Voltage> angleMotorVoltageStatusSignal;
+  
+    private double angleMotorReferenceAngleDegrees = 0.0;
+  
+    private final Debouncer connectedDebouncer = new Debouncer(0.5);
+  
+    private ArmSystemSim angleMotorSim;
+  
+    private Alert configAlert = new Alert("Failed to apply configuration for arm.", AlertType.kError);
+  
+    // The following enables tuning of the PID and feedforward values for the arm by changing values
+    // via AdvantageScope and not needing to change values in code, compile, and re-deploy.
+    private final LoggedTunableNumber kG =
+        new LoggedTunableNumber("Pivot/PIVOT_KG", PivotConstants.PIVOT_KG);
+    private final LoggedTunableNumber kS =
+        new LoggedTunableNumber("Pivot/PIVOT_KS", PivotConstants.PIVOT_KS);
+    private final LoggedTunableNumber kV =
+        new LoggedTunableNumber("Pivot/PIVOT_KV", PivotConstants.PIVOT_KV);
+    private final LoggedTunableNumber kA =
+        new LoggedTunableNumber("Pivot/PIVOT_KA", PivotConstants.PIVOT_KA);
+    private final LoggedTunableNumber kP =
+        new LoggedTunableNumber("Pivot/PIVOT_KP", PivotConstants.PIVOT_KP);
+    private final LoggedTunableNumber kI =
+        new LoggedTunableNumber("Pivot/PIVOT_KI", PivotConstants.PIVOT_KI);
+    private final LoggedTunableNumber kD =
+        new LoggedTunableNumber("Pivot/PIVOT_KD", PivotConstants.PIVOT_KD);
+    private final LoggedTunableNumber kAExpo =
+        new LoggedTunableNumber("Pivot/PIVOT_KA_EXPO", PivotConstants.PIVOT_KA_EXPO);
 
-  private StatusSignal<Current> angleMotorStatorCurrentStatusSignal;
-  private StatusSignal<Current> angleMotorSupplyCurrentStatusSignal;
-  private StatusSignal<Angle> angleMotorPositionStatusSignal;
-  private StatusSignal<Temperature> angleMotorTemperatureStatusSignal;
-  private StatusSignal<Voltage> angleMotorVoltageStatusSignal;
-
-  private double angleMotorReferenceAngleDegrees = 0.0;
-
-  private final Debouncer connectedDebouncer = new Debouncer(0.5);
-
-  private ArmSystemSim angleMotorSim;
-
-  private Alert configAlert = new Alert("Failed to apply configuration for arm.", AlertType.kError);
-
-  // The following enables tuning of the PID and feedforward values for the arm by changing values
-  // via AdvantageScope and not needing to change values in code, compile, and re-deploy.
-  private final LoggedTunableNumber kG =
-      new LoggedTunableNumber("Pivot/PIVOT_KG", PivotConstants.PIVOT_KG);
-  private final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Pivot/PIVOT_KS", PivotConstants.PIVOT_KS);
-  private final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Pivot/PIVOT_KV", PivotConstants.PIVOT_KV);
-  private final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Pivot/PIVOT_KA", PivotConstants.PIVOT_KA);
-  private final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Pivot/PIVOT_KP", PivotConstants.PIVOT_KP);
-  private final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Pivot/PIVOT_KI", PivotConstants.PIVOT_KI);
-  private final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Pivot/PIVOT_KD", PivotConstants.PIVOT_KD);
-  private final LoggedTunableNumber kAExpo =
-      new LoggedTunableNumber("Pivot/PIVOT_KA_EXPO", PivotConstants.PIVOT_KA_EXPO);
-  private final LoggedTunableNumber kVExpo =
-      new LoggedTunableNumber("Pivot/PIVOT_KV_EXPO", PivotConstants.PIVOT_KV_EXPO);
-
-  private TalonFX angleMotor;
-  private CANcoder angleEncoder;
-
-  public PivotIOTalonFX() {
-
-    angleMotor = new TalonFX(PIVOT_MOTOR_ID, RobotConfig.getInstance().getCANBusName());
+    private final LoggedTunableNumber rotationEncoderMagnetOffset =
+        new LoggedTunableNumber("Pivot/ROTATION_ENCODER_MAGNET_OFFSET", PivotConstants.ROTATION_ENCODER_MAGNET_OFFSET);
+    private final LoggedTunableNumber kVExpo =
+        new LoggedTunableNumber("Pivot/PIVOT_KV_EXPO", PivotConstants.PIVOT_KV_EXPO);
+  
+    private TalonFX angleMotor;
+    private CANcoder angleEncoder;
+  
+    public PivotIOTalonFX() {
+  
+      angleMotor = new TalonFX(PIVOT_LEAD_MOTOR_ID, RobotConfig.getInstance().getCANBusName());
     angleEncoder = new CANcoder(PIVOT_ENCODER_ID, RobotConfig.getInstance().getCANBusName());
 
     angleMotorPositionRequest = new MotionMagicExpoVoltage(0);
@@ -135,9 +138,9 @@ public class PivotIOTalonFX implements PivotIO {
                 angleMotorTemperatureStatusSignal,
                 angleMotorVoltageStatusSignal));
 
-    inputs.angleMotorStatorCurrentAmps = angleMotorStatorCurrentStatusSignal.getValueAsDouble();
-    inputs.angleMotorSupplyCurrentAmps = angleMotorSupplyCurrentStatusSignal.getValueAsDouble();
-    inputs.angleMotorVoltage = angleMotorVoltageStatusSignal.getValueAsDouble();
+    inputs.statorCurrentAmps = angleMotorStatorCurrentStatusSignal.getValueAsDouble();
+    inputs.supplyCurrentAmps = angleMotorSupplyCurrentStatusSignal.getValueAsDouble();
+    inputs.voltageSupplied = angleMotorVoltageStatusSignal.getValueAsDouble();
     inputs.angleDegrees =
         Units.rotationsToDegrees(angleMotorPositionStatusSignal.getValueAsDouble());
     inputs.angleMotorTemperatureCelsius = angleMotorTemperatureStatusSignal.getValueAsDouble();
@@ -151,7 +154,7 @@ public class PivotIOTalonFX implements PivotIO {
     // angleMotorReferenceAngleDegrees property should be used throughout the subsystem since it
     // will always be populated.
     if (Constants.TUNING_MODE) {
-      inputs.angleMotorClosedLoopReferenceAngleDegrees =
+      inputs.closedLoopReferenceAngleDegrees =
           Units.rotationsToDegrees(angleMotor.getClosedLoopReference().getValueAsDouble());
       inputs.angleMotorClosedLoopErrorAngleDegrees =
           Units.rotationsToDegrees(angleMotor.getClosedLoopError().getValueAsDouble());
@@ -197,7 +200,7 @@ public class PivotIOTalonFX implements PivotIO {
   }
 
   @Override
-  public void setAngleMotorVoltage(double voltage) {
+  public void setVoltage(double voltage) {
     angleMotor.setControl(angleMotorVoltageRequest.withOutput(voltage));
   }
 
@@ -221,19 +224,19 @@ public class PivotIOTalonFX implements PivotIO {
     angleMotorConfig.CurrentLimits.StatorCurrentLimitEnable = true;
 
     angleMotorConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
-    angleMotorConfig.Slot0.kP = rotationMotorKP.get();
-    angleMotorConfig.Slot0.kI = rotationMotorKI.get();
-    angleMotorConfig.Slot0.kD = rotationMotorKD.get();
-    angleMotorConfig.Slot0.kS = rotationMotorKS.get();
-    angleMotorConfig.Slot0.kG = rotationMotorKG.get();
-    angleMotorConfig.Slot0.withGravityType(GravityTypeValue.Pivot_Cosine);
-    angleMotorConfig.Slot0.kA = rotationMotorKA.get();
-    angleMotorConfig.Slot0.kV = rotationMotorKV.get();
+    angleMotorConfig.Slot0.kP = kP.get();
+    angleMotorConfig.Slot0.kI = kI.get();
+    angleMotorConfig.Slot0.kD = kD.get();
+    angleMotorConfig.Slot0.kS = kS.get();
+    angleMotorConfig.Slot0.kG = kG.get();
+    angleMotorConfig.Slot0.withGravityType(GravityTypeValue.Arm_Cosine);
+    angleMotorConfig.Slot0.kA = kA.get();
+    angleMotorConfig.Slot0.kV = kV.get();
 
     angleMotorConfig.MotionMagic.MotionMagicCruiseVelocity =
         PivotConstants.MOTION_MAGIC_CRUISE_VELOCITY;
-    angleMotorConfig.MotionMagic.MotionMagicExpo_kV = rotationMotorExpoKV.get();
-    angleMotorConfig.MotionMagic.MotionMagicExpo_kA = rotationMotorExpoKA.get();
+    angleMotorConfig.MotionMagic.MotionMagicExpo_kV = kAExpo.get();
+    angleMotorConfig.MotionMagic.MotionMagicExpo_kA = kVExpo.get();
 
     angleMotorConfig.MotorOutput.Inverted =
         PivotConstants.ANGLE_MOTOR_INVERTED
