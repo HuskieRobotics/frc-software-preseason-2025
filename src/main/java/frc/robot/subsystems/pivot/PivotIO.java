@@ -15,7 +15,7 @@ public interface PivotIO {
   public static class PivotIOInputs {
     double voltageSupplied = 0.0;
     double statorCurrentAmps = 0.0;
-    double supplyCurrentAmps = 0.0;
+    double supplyCurrentAmps = 0.0; 
     double angleMotorClosedLoopErrorAngleDegrees = 0.0;
     double closedLoopReferenceAngleDegrees = 0.0;   
     double angleMotorTemperatureCelsius = 0.0;

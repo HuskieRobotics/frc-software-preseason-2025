@@ -113,57 +113,11 @@ public class Pivot extends SubsystemBase {
   public void setAngle(Angle angle) {
     io.setAngle(angle);
   }
+  
 
-  public boolean isAngleAtSetpoint() {
-    // This method uses a debouncer to determine if the arm is at the setpoint angle.
-    // The angle is considered at the setpoint if the angle is within tolerance for the period
-    // specified when constructing the debouncer (e.g., 0.1 seconds or 5 loop iterations).
-    return atSetpointDebouncer.calculate(
-        Math.abs(inputs.angleMotorReferenceAngleDegrees - inputs.angleDegrees)
-            < ANGLE_TOLERANCE_DEGREES);
-  }
+  
 
-  private Command getSystemCheckCommand() {
-    // A subsystem's system check command is used to verify the functionality of the subsystem. It
-    // should perform a sequence of commands (usually encapsulated in another method). The command
-    // should always be decorated with an `until` condition that checks for faults in the subsystem
-    // and an `andThen` condition that sets the subsystem to a safe state. This ensures that if any
-    // faults are detected, the test will stop and the subsystem is always left in a safe state.
-    return Commands.sequence(
-            getPresetCheckCommand(20.0),
-            getPresetCheckCommand(40.0),
-            getPresetCheckCommand(50.0),
-            getPresetCheckCommand(70.0))
-        .until(() -> !FaultReporter.getInstance().getFaults(SUBSYSTEM_NAME).isEmpty())
-        .andThen(Commands.runOnce(() -> io.setAngle(Degrees.of(LOWER_ANGLE_LIMIT))));
-  }
+  
 
-  private Command getPresetCheckCommand(double angleDegrees) {
-    return Commands.sequence(
-        Commands.runOnce(() -> this.setAngle(Degrees.of(angleDegrees))),
-        Commands.waitSeconds(2.0),
-        Commands.runOnce(() -> this.checkAngle(angleDegrees)));
-  }
-
-  private void checkAngle(double degrees) {
-    if (Math.abs(this.inputs.angleDegrees - degrees) > ANGLE_TOLERANCE_DEGREES) {
-      if (Math.abs(degrees) - Math.abs(this.inputs.angleDegrees) > 0) {
-        FaultReporter.getInstance()
-            .addFault(
-                SUBSYSTEM_NAME,
-                "Shooter angle is too low, should be "
-                    + degrees
-                    + " but is "
-                    + this.inputs.angleDegrees);
-      } else {
-        FaultReporter.getInstance()
-            .addFault(
-                SUBSYSTEM_NAME,
-                "Shooter angle is too high, should be "
-                    + degrees
-                    + " but is "
-                    + this.inputs.angleDegrees);
-      }
-    }
-  }
+  
 }
