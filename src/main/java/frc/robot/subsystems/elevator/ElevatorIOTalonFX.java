@@ -34,14 +34,34 @@ public class ElevatorIOTalonFX implements ElevatorIO(){
 
     private VoltageOut elevatorVoltageRequest;
     private MotionMagicExpo elevatorPositionRequest;
-    
-    private Alert elevatorConfigAlert = 
-        new Alert("Failed to apply configuration for elevator.", AlertType.kError);
-    
+
+    private Alert elevatorLeadConfigAlert =
+        new Alert("Failed to apply configuration for lead elevator motor.", AlertType.kError);
+    private Alert elevatorFollowerConfigAlert =
+        new Alert("Failed to apply configuration for follower elevator motor.", AlertType.kError);
+
     private StatusSignal<Volts> leadMotorStatorCurrent;
     private StatusSignal<Volts> leadMotorVoltageSupplyCurrent;
     private StatusSignal<Amps> leadMotorSupplyCurrent;
     private StatusSignal<Temperature> leadMotorTemp;
     private StatusSignal<RPS> leadMotorVelocity;
     private StatusSignal<Position> leadMotorPosition;
+    private StatusSignal<Position> leadMotorRPS;//no. of rotations
+    private StatusSignal<LoopError> leadMotorLoopError;
+    private StatusSignal<LoopReference> leadMotorLoopReference;
+
+    private final Debouncer topMotorConnectedDebouncer = new Debouncer(Constants.kMotorConnectionDebounceTimeSeconds);
+    private final Debouncer followerMotorConnectedDebouncer = new Debouncer(Constants.kMotorConnectionDebounceTimeSeconds);
+
+    private final LoggedTunableNumber elevatorLeadKg = new LoggedTunableNumber("Elevator/LeadKg", ElevatorConstants.KG);
+    private final LoggedTunableNumber elevatorLeadKs = new LoggedTunableNumber("Elevator/LeadKs", ElevatorConstants.KS);
+    private final LoggedTunableNumber elevatorLeadKv = new LoggedTunableNumber("Elevator/LeadKv", ElevatorConstants.KV);
+    private final LoggedTunableNumber elevatorLeadKa = new LoggedTunableNumber("Elevator/LeadKa", ElevatorConstants.KA);
+    private final LoggedTunableNumber elevatorLeadKp = new LoggedTunableNumber("Elevator/LeadKp", ElevatorConstants.KP);
+    private final LoggedTunableNumber elevatorLeadKi = new LoggedTunableNumber("Elevator/LeadKi", ElevatorConstants.KI);
+    private final LoggedTunableNumber elevatorLeadKd = new LoggedTunableNumber("Elevator/LeadKd", ElevatorConstants.KD);
+    private final LoggedTunableNumber elevatorLeadKvexpo = new LoggedTunableNumber("Elevator/LeadKvExpo", ElevatorConstants.KVEXPO);
+    private final LoggedTunableNumber elevatorLeadKaexpo = new LoggedTunableNumber("Elevator/LeadKaExpo", ElevatorConstants.KAEXPO);
+    private final LoggedTunableNumber crusiveVelocity = new LoggedTunableNumber("Elevator/CrusiveVelocity", 0);
+
 }
