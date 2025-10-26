@@ -64,4 +64,63 @@ public class ElevatorIOTalonFX implements ElevatorIO(){
     private final LoggedTunableNumber elevatorLeadKaexpo = new LoggedTunableNumber("Elevator/LeadKaExpo", ElevatorConstants.KAEXPO);
     private final LoggedTunableNumber crusiveVelocity = new LoggedTunableNumber("Elevator/CrusiveVelocity", 0);
 
+    public ElevatorIOTalonFX(){
+    leadMotor = new TalonFX(RobotConfig.getInstance("Elevator/LeadMotorCANID", 0));//Chnage can ID later
+    followerMotor = new TalonFX(RobotConfig.getInstance("Elevator/FollowerMotorCANID", 1));//Change can ID later
+
+    leadMotorStatorCurrent = leadMotor.getStatorCurrent();
+    followerMotorStatorCurrent = followerMotor.getStatorCurrent();
+
+    leadMotorVoltageSupplyCurrent = leadMotor.getSupplyCurrent();
+    followerMotorVoltageSupplyCurrent = followerMotor.getSupplyCurrent();
+
+    leadMotorTemp = leadMotor.getDeviceTemp();
+    followerMotorTemp = followerMotor.getDeviceTemp();
+
+    leadMotorRotations = leadMotor.getRotations();
+    followerMotorRotations = followerMotor.getRotations();
+
+    Phoenix6Util.registerSignals(
+        true,
+        leadMotorStatorCurrent,
+        followerMotorStatorCurrent,
+        leadMotorVoltageSupplyCurrent,
+        followerMotorVoltageSupplyCurrent,
+        leadMotorTemp,
+        followerMotorTemp,
+        leadMotorRotations,
+        followerMotorRotations
+    );
+
+    configureElevatorMotors(leadMotor);
+    configureElevatorMotors(followerMotor);
+
+    //need to know how to connect motors here
+    //I don't know what else to add here gonna know it later
+    }
+
+    @Override
+    public void updateInputs(ElevatorIOInputs inputs) {
+        inputs.leadMotorStatorCurrent = leadMotorStatorCurrent.getValue();
+        inputs.followerMotorStatorCurrent = followerMotorStatorCurrent.getValue();
+
+        inputs.leadMotorVoltageSupplyCurrent = leadMotorVoltageSupplyCurrent.getValue();
+        inputs.followerMotorVoltageSupplyCurrent = followerMotorVoltageSupplyCurrent.getValue();
+
+        inputs.leadMotorTemp = leadMotorTemp.getValue();
+        inputs.followerMotorTemp = followerMotorTemp.getValue();
+
+        inputs.leadMotorRotations = leadMotorRotations.getValue();
+        inputs.followerMotorRotations = followerMotorRotations.getValue();
+    }
+
+    private void configureElevatorMotors(TalonFX motor) {
+        TalonFXConfiguration config = new TalonFXConfiguration();
+
+        MotionMagicConfig motionMagicConfig = new MotionMagicConfig();
+
+        //Need to set the config values here & I don't know how to do that
+    }
+
+    //need to add method to set position here
 }
