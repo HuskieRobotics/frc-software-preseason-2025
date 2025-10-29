@@ -112,15 +112,29 @@ public class ElevatorIOTalonFX implements ElevatorIO(){
 
         inputs.leadMotorRotations = leadMotorRotations.getValue();
         inputs.followerMotorRotations = followerMotorRotations.getValue();
+
+        ElevatorSystemSim.updateSim();
     }
 
     private void configureElevatorMotors(TalonFX motor) {
         TalonFXConfiguration config = new TalonFXConfiguration();
 
         MotionMagicConfig motionMagicConfig = new MotionMagicConfig();
-
+        
         //Need to set the config values here & I don't know how to do that
     }
 
-    //need to add method to set position here
+    @Override
+    public void setMotorVoltage(double voltage) {
+        elevatorMotorLead.setVoltage(leadVoltageRequest.withOutput(voltage));
+        elevatorMotorFollower.setVoltage(followerVoltageRequest.withOutput(voltage));
+    }
+    //FIXME:need to complete method to set position here
+    @Override
+    public void setPosition(Distance position) {
+    }
+
+    @Override
+    public void zeroPosition() {
+    }
 }
