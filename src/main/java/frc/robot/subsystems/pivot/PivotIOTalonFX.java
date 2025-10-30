@@ -32,7 +32,7 @@ public class PivotIOTalonFX implements PivotIO {
   private MotionMagicExpoVoltage pivotLeadMotorPositionRequest;
   private VoltageOut pivotLeadMotorVoltageRequest;
 
-  // I did this all without Copilot.
+  // Creating status signals for each motor
   private StatusSignal<Voltage> voltageSuppliedLead;
   private StatusSignal<Voltage> voltageSuppliedFollower1;
   private StatusSignal<Voltage> voltageSuppliedFollower2;
@@ -57,7 +57,10 @@ public class PivotIOTalonFX implements PivotIO {
 
   private double angleMotorReferenceAngleDegrees = 0.0;
 
-  private final Debouncer connectedDebouncer = new Debouncer(0.5);
+  private final Debouncer connectedLeadDebouncer = new Debouncer(0.5);
+  private final Debouncer connectedFollower1Debouncer = new Debouncer(0.5);
+  private final Debouncer connectedFollower2Debouncer = new Debouncer(0.5);
+  private final Debouncer connectedFollower3Debouncer = new Debouncer(0.5);
 
   private ArmSystemSim angleMotorSim;
 
@@ -83,7 +86,7 @@ public class PivotIOTalonFX implements PivotIO {
   private final LoggedTunableNumber kAExpo =
       new LoggedTunableNumber("Pivot/PIVOT_KA_EXPO", PivotConstants.PIVOT_KA_EXPO);
 
-  // I did this all without Copilot.
+
   public PivotIOTalonFX() {
     leadPivotMotor = new TalonFX(PIVOT_LEAD_MOTOR_ID);
     followerPivotMotor1 = new TalonFX(PIVOT_FOLLOWER_MOTOR_ID_1);
@@ -132,8 +135,154 @@ public class PivotIOTalonFX implements PivotIO {
         voltageSuppliedFollower1,
         voltageSuppliedFollower2,
         voltageSuppliedFollower3);
+
+        pivotLeadMotorPositionRequest = new MotionMagicExpoVoltage(0);
+        pivotLeadMotorVoltageRequest = new VoltageOut(0);
+
+        configPivotMotorLead(pivotMotorLead);
+        configPivotMotorFollower1(pivotMotorFollower1);
+        configPivotMotorFollower2(pivotMotorFollower2);
+        configPivotMotorFollower3(pivotMotorFollower3);
+
+        // Followers 2 and 3 are inverted from the rotation of Lead and Follower 1
+        pivotMotorFollower1.setControl(new Follower(pivotMotorLead.getDeviceID(), true));
+        pivotMotorFollower2.setControl(new Follower(pivotMotorLead.getDeviceID(), true));
+        pivotMotorFollower3.setControl(new Follower(pivotMotorLead.getDeviceID(), true));
+
+        pivotSystemSim =
+            new PivotSystemSim( // FIXME: May need more params?
+                pivotMotorLead,
+                PivotConstants.PIVOT_MOTOR_INVERTED,
+                PivotConstants.ANGLE_MOTOR_GEAR_RATIO, // FIXME: This may not be the right one
+                PivotConstants.PIVOT_MASS_KG, // FIXME: Set to 0 for now
+                PivotConstants.LOWER_ANGLE_LIMIT,
+                PivotConstants.UPPER_ANGLE_LIMIT,
+                PivotConstants.SUBSYSTEM_NAME)
+  }
+
+  @Override
+  public void updateInputs(PivotIOInputs inputs) {
+    // Determine if motors are still connected (reachable on CAN bus). If they are not they return an error.
+        inputs.connectedLead =
+            connectedLeadDebouncer.calculate(
+                BaseStatusSignal.isAllGood(
+                    voltageSuppliedLead,
+                    leadStatorCurrent,
+                    leadSupplyCurrent,
+                    leadTemperature,
+                    pivotAngleDegrees));
+        inputs.connectedFollower1.calculate(
+            connectedFollower1Debouncer.isAllGood(
+                voltageSuppliedFollower1,
+                follower1StatorCurrent,
+                follower1SupplyCurrent,
+                follower1Temperature));
+        inputs.connectedFollower2.calculate(
+            connectedFollower2Debouncer.isAllGood(
+                voltageSuppliedFollower2,
+                follower2StatorCurrent,
+                follower2SupplyCurrent,
+                follower2Temperature));
+        inputs.connectedFollower3.calculate(
+            connectedFollower3Debouncer.isAllGood(
+                voltageSuppliedFollower3,
+                follower3StatorCurrent,
+                follower3SupplyCurrent,
+                follower3Temperature));
+
+    inputs.voltageSuppliedLead = voltageSuppliedLead.getValueAsDouble();
+    inputs.voltageSuppliedFollower1 = voltageSuppliedFollower1.getValueAsDouble();
+    inputs.voltageSuppliedFollower2 = voltageSuppliedFollower2.getValueAsDouble();
+    inputs.voltageSuppliedFollower3 = voltageSuppliedFollower3.getValueAsDouble();
+
+    inputs.statorCurrentAmpsLead = leadStatorCurrent.getValueAsDouble();
+    inputs.statorCurrentAmpsFollower1 = follower1StatorCurrent.getValueAsDouble();
+    inputs.statorCurrentAmpsFollower2 = follower2StatorCurrent.getValueAsDouble();
+    inputs.statorCurrentAmpsFollower3 = follower3StatorCurrent.getValueAsDouble();
+
+    inputs.supplyCurrentAmpsLead = leadSupplyCurrent.getValueAsDouble();
+    inputs.supplyCurrentAmpsFollower1 = follower1SupplyCurrent.getValueAsDouble();
+    inputs.supplyCurrentAmpsFollower2 = follower2SupplyCurrent.getValueAsDouble();
+    inputs.supplyCurrentAmpsFollower3 = follower3SupplyCurrent.getValueAsDouble();
+
+    inputs.leadTempCelsius = leadTemperature.getValueAsDouble();
+    inputs.follower1TempCelsius = follower1Temperature.getValueAsDouble();
+    inputs.follower2TempCelsius = follower2Temperature.getValueAsDouble();
+    inputs.follower3TempCelsius = follower3Temperature.getValueAsDouble();
+
+    inputs.pivotAngleDegrees = pivotAngleDegrees.getValueAsDouble();
     
-    
+    // Retrieve the closed loop reference status signals directly from the motor in this method
+    // instead of retrieving in advance because the status signal returned depends on the current
+    // control mode. To eliminate the performance hit, only retrieve the closed loop reference
+    // signals if the tuning mode is enabled. It is critical that these input values are only used
+    // for tuning and not used elsewhere in the subsystem.
+    if (Constants.TUNING_MODE) {
+      inputs.closedLoopError = pivotMotorLead.getClosedLoopError().getValueAsDouble();
+      inputs.closedLoopReference = pivotMotorLead.getClosedLoopReference().getValueAsDouble();
+    }
+
+    // In order for a tunable to be useful, there must be code that checks if its value has changed.
+    // When a subsystem has multiple tunables that are related, the ifChanged method is a convenient
+    // to check and apply changes from multiple tunables at once.
+    LoggedTunableNumber.ifChanged(
+        hashCode(),
+        motionMagic -> {
+          TalonFXConfiguration config = new TalonFXConfiguration();
+          this.pivotMotorLead.getConfigurator().refresh(config);
+          config.Slot0.kP = motionMagic[0];
+          config.Slot0.kI = motionMagic[1];
+          config.Slot0.kD = motionMagic[2];
+          config.Slot0.kS = motionMagic[3];
+          config.Slot0.kV = motionMagic[4];
+          config.Slot0.kA = motionMagic[5];
+          config.Slot0.kG = motionMagic[6];
+
+          config.MotionMagic.MotionMagicExpo_kV = motionMagic[7];
+          config.MotionMagic.MotionMagicExpo_kA = motionMagic[8];
+
+          //config.MotionMagic.MotionMagicCruiseVelocity = motionMagic[9]; 
+          // FIXME: Unsure if this is needed, probably not
+
+          this.pivotMotorLead.getConfigurator().apply(config);
+        },
+        kP,
+        kI,
+        kD,
+        kS,
+        kV,
+        kA,
+        kG,
+        kVExpo,
+        kAExpo/*,
+        cruiseVelocity*/);
+
+        pivotSystemSim.updateSim();
+    }
+
+
+  @Override
+  public void setVoltage(double voltage) {
+    leadPivotMotor.setControl(
+        pivotLeadMotorVoltageRequest.withLimitReverseMotion(false).withOutput(voltage));
+  }
+
+  @Override
+  public void setAngle(Angle angle) {
+    leadPivotMotor.setControl(
+        pivotLeadMotorPositionRequest.withPosition(); // FIXME: Unsure of how angle is handled
+    )
+  }
+
+  private void configPivotMotorLead(TalonFX motor) {
+    TalonFXConfiguration config = new TalonFXConfiguration();
+
+    config.CurrentLimits.SupplyCurrentLimit = PivotConstants.ANGLE_MOTOR_PEAK_CURRENT_DURATION;
+    config.CurrentLimits.SupplyCurrentLowerLimit = PivotConstants.ANGLE_MOTOR_PEAK_CURRENT_LIMIT; // FIXME: ? It could be OK that these are the same, unsure
+    config.CurrentLimits.SupplyCurrentLowerTime = 0;
+    config.SupplyCurrentLimitEnable = true;
+    config.CurrentLimits.StatorCurrentLimit = PivotConstants.ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
   }
 
 }

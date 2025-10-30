@@ -30,5 +30,5 @@ public interface PivotIO {
   public default void setVoltage(double voltage) {}
   public default void setAngle(Angle angle) {}
   public default void updateInputs(PivotIOInputs inputs) {}
-  public Object setAngleMotorVoltage(double in);
+  //public Object setAngleMotorVoltage(double in);
 }

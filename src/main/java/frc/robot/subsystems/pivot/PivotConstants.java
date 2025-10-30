@@ -9,7 +9,7 @@ public class PivotConstants {
     public static final int PIVOT_FOLLOWER_MOTOR_ID_2 = 83;
     public static final int PIVOT_FOLLOWER_MOTOR_ID_3 = 84;
 
-    public static final int ANGLE_MOTOR_GEAR_RATIO = 100;
+    public static final int ANGLE_MOTOR_GEAR_RATIO = 123.45679; // FIXME: This could be 100 instead, but based on design document setting to this number
     public static final int SENSOR_TO_MECHANISM_RATIO = 1;
 
 
@@ -40,6 +40,9 @@ public class PivotConstants {
     public static final boolean ANGLE_MOTOR_INVERTED = false;
 
     public static final double ROTATION_ENCODER_MAGNET_OFFSET = 0;
+
+    
+    public static final double PIVOT_MASS_KG = 0; // FIXME: Change to pivot mass later
 
 
 
