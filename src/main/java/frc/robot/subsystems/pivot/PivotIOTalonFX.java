@@ -3,11 +3,17 @@ package frc.robot.subsystems.pivot;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.pivot.PivotConstants.*;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicExpoVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
+
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Current;
@@ -16,8 +22,10 @@ import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import frc.lib.team254.Phoenix6Util;
+import frc.lib.team3015.subsystem.FaultReporter;
 import frc.lib.team3061.sim.ArmSystemSim;
 import frc.lib.team6328.util.LoggedTunableNumber;
+import frc.robot.Constants;
 
 public class PivotIOTalonFX implements PivotIO {
 
@@ -62,10 +70,16 @@ public class PivotIOTalonFX implements PivotIO {
   private final Debouncer connectedFollower2Debouncer = new Debouncer(0.5);
   private final Debouncer connectedFollower3Debouncer = new Debouncer(0.5);
 
-  private ArmSystemSim angleMotorSim;
+  private ArmSystemSim pivotSystemSim;
 
-  private Alert configAlert =
+  private Alert configAlertLead =
       new Alert("Failed to apply configuration for pivot.", AlertType.kError);
+  private Alert configAlertFollower1 =
+      new Alert("Failed to apply configuration for pivot follower 1", AlertType.kError);
+  private Alert configAlertFollower2 =
+      new Alert("Failed to apply configuration for pivot follower 2", AlertType.kError);
+  private Alert configAlertFollower3 = 
+      new Alert("Failed to apply configuration for pivot follower 3", AlertType.kError);
 
   // The following enables tuning of the PID and feedforward values for the arm by changing values
   // via AdvantageScope and not needing to change values in code, compile, and re-deploy.
@@ -85,6 +99,8 @@ public class PivotIOTalonFX implements PivotIO {
       new LoggedTunableNumber("Pivot/PIVOT_KD", PivotConstants.PIVOT_KD);
   private final LoggedTunableNumber kAExpo =
       new LoggedTunableNumber("Pivot/PIVOT_KA_EXPO", PivotConstants.PIVOT_KA_EXPO);
+  private final LoggedTunableNumber kVExpo = 
+      new LoggedTunableNumber("Pivot/PIVOT_KV_EXPO", PivotConstants.PIVOT_KV_EXPO);
 
 
   public PivotIOTalonFX() {
@@ -117,7 +133,7 @@ public class PivotIOTalonFX implements PivotIO {
 
     pivotAngleDegrees = leadPivotMotor.getPosition();
 
-    Phoenix6Utils.registerSignals(
+    Phoenix6Util.registerSignals(
         false,
         leadStatorCurrent,
         follower1StatorCurrent,
@@ -139,31 +155,33 @@ public class PivotIOTalonFX implements PivotIO {
         pivotLeadMotorPositionRequest = new MotionMagicExpoVoltage(0);
         pivotLeadMotorVoltageRequest = new VoltageOut(0);
 
-        configPivotMotorLead(pivotMotorLead);
-        configPivotMotorFollower1(pivotMotorFollower1);
-        configPivotMotorFollower2(pivotMotorFollower2);
-        configPivotMotorFollower3(pivotMotorFollower3);
+        configPivotMotorLead(leadPivotMotor);
+        configPivotMotorFollower1(followerPivotMotor1);
+        configPivotMotorFollower2(followerPivotMotor2);
+        configPivotMotorFollower3(followerPivotMotor3);
 
-        // Followers 2 and 3 are inverted from the rotation of Lead and Follower 1
-        pivotMotorFollower1.setControl(new Follower(pivotMotorLead.getDeviceID(), true));
-        pivotMotorFollower2.setControl(new Follower(pivotMotorLead.getDeviceID(), true));
-        pivotMotorFollower3.setControl(new Follower(pivotMotorLead.getDeviceID(), true));
+        followerPivotMotor1.setControl(new Follower(leadPivotMotor.getDeviceID(), false));
+        followerPivotMotor2.setControl(new Follower(leadPivotMotor.getDeviceID(), true));
+        followerPivotMotor3.setControl(new Follower(leadPivotMotor.getDeviceID(), true));
 
-        pivotSystemSim =
-            new PivotSystemSim( // FIXME: May need more params?
-                pivotMotorLead,
-                PivotConstants.PIVOT_MOTOR_INVERTED,
-                PivotConstants.ANGLE_MOTOR_GEAR_RATIO, // FIXME: This may not be the right one
-                PivotConstants.PIVOT_MASS_KG, // FIXME: Set to 0 for now
+        pivotSystemSim = 
+            new ArmSystemSim(
+                leadPivotMotor,
+                PivotConstants.ANGLE_MOTOR_INVERTED,
+                PivotConstants.SENSOR_TO_MECHANISM_RATIO,
+                0, // FIXME: Should be length, no value in PivotConstants
+                PivotConstants.PIVOT_MASS_KG,
                 PivotConstants.LOWER_ANGLE_LIMIT,
                 PivotConstants.UPPER_ANGLE_LIMIT,
-                PivotConstants.SUBSYSTEM_NAME)
-  }
+                0, //FIXME: Should be startingAngle, no value in PivotConstants
+                PivotConstants.SUBSYSTEM_NAME);
+
+    }
 
   @Override
   public void updateInputs(PivotIOInputs inputs) {
     // Determine if motors are still connected (reachable on CAN bus). If they are not they return an error.
-        inputs.connectedLead =
+        inputs.pivotConnected =
             connectedLeadDebouncer.calculate(
                 BaseStatusSignal.isAllGood(
                     voltageSuppliedLead,
@@ -171,46 +189,20 @@ public class PivotIOTalonFX implements PivotIO {
                     leadSupplyCurrent,
                     leadTemperature,
                     pivotAngleDegrees));
-        inputs.connectedFollower1.calculate(
-            connectedFollower1Debouncer.isAllGood(
-                voltageSuppliedFollower1,
-                follower1StatorCurrent,
-                follower1SupplyCurrent,
-                follower1Temperature));
-        inputs.connectedFollower2.calculate(
-            connectedFollower2Debouncer.isAllGood(
-                voltageSuppliedFollower2,
-                follower2StatorCurrent,
-                follower2SupplyCurrent,
-                follower2Temperature));
-        inputs.connectedFollower3.calculate(
-            connectedFollower3Debouncer.isAllGood(
-                voltageSuppliedFollower3,
-                follower3StatorCurrent,
-                follower3SupplyCurrent,
-                follower3Temperature));
 
-    inputs.voltageSuppliedLead = voltageSuppliedLead.getValueAsDouble();
-    inputs.voltageSuppliedFollower1 = voltageSuppliedFollower1.getValueAsDouble();
-    inputs.voltageSuppliedFollower2 = voltageSuppliedFollower2.getValueAsDouble();
-    inputs.voltageSuppliedFollower3 = voltageSuppliedFollower3.getValueAsDouble();
+    inputs.voltageSupplied = voltageSuppliedLead.getValueAsDouble();
 
-    inputs.statorCurrentAmpsLead = leadStatorCurrent.getValueAsDouble();
-    inputs.statorCurrentAmpsFollower1 = follower1StatorCurrent.getValueAsDouble();
-    inputs.statorCurrentAmpsFollower2 = follower2StatorCurrent.getValueAsDouble();
-    inputs.statorCurrentAmpsFollower3 = follower3StatorCurrent.getValueAsDouble();
+    inputs.statorCurrentAmps = leadStatorCurrent.getValueAsDouble();
 
-    inputs.supplyCurrentAmpsLead = leadSupplyCurrent.getValueAsDouble();
-    inputs.supplyCurrentAmpsFollower1 = follower1SupplyCurrent.getValueAsDouble();
-    inputs.supplyCurrentAmpsFollower2 = follower2SupplyCurrent.getValueAsDouble();
-    inputs.supplyCurrentAmpsFollower3 = follower3SupplyCurrent.getValueAsDouble();
+    inputs.supplyCurrentAmps = leadSupplyCurrent.getValueAsDouble();
+
 
     inputs.leadTempCelsius = leadTemperature.getValueAsDouble();
     inputs.follower1TempCelsius = follower1Temperature.getValueAsDouble();
     inputs.follower2TempCelsius = follower2Temperature.getValueAsDouble();
     inputs.follower3TempCelsius = follower3Temperature.getValueAsDouble();
 
-    inputs.pivotAngleDegrees = pivotAngleDegrees.getValueAsDouble();
+    inputs.angleDegrees = pivotAngleDegrees.getValueAsDouble();
     
     // Retrieve the closed loop reference status signals directly from the motor in this method
     // instead of retrieving in advance because the status signal returned depends on the current
@@ -218,8 +210,8 @@ public class PivotIOTalonFX implements PivotIO {
     // signals if the tuning mode is enabled. It is critical that these input values are only used
     // for tuning and not used elsewhere in the subsystem.
     if (Constants.TUNING_MODE) {
-      inputs.closedLoopError = pivotMotorLead.getClosedLoopError().getValueAsDouble();
-      inputs.closedLoopReference = pivotMotorLead.getClosedLoopReference().getValueAsDouble();
+      inputs.closedLoopError = leadPivotMotor.getClosedLoopError().getValueAsDouble();
+      inputs.closedLoopReference = leadPivotMotor.getClosedLoopReference().getValueAsDouble();
     }
 
     // In order for a tunable to be useful, there must be code that checks if its value has changed.
@@ -229,7 +221,7 @@ public class PivotIOTalonFX implements PivotIO {
         hashCode(),
         motionMagic -> {
           TalonFXConfiguration config = new TalonFXConfiguration();
-          this.pivotMotorLead.getConfigurator().refresh(config);
+          this.leadPivotMotor.getConfigurator().refresh(config);
           config.Slot0.kP = motionMagic[0];
           config.Slot0.kI = motionMagic[1];
           config.Slot0.kD = motionMagic[2];
@@ -244,7 +236,7 @@ public class PivotIOTalonFX implements PivotIO {
           //config.MotionMagic.MotionMagicCruiseVelocity = motionMagic[9]; 
           // FIXME: Unsure if this is needed, probably not
 
-          this.pivotMotorLead.getConfigurator().apply(config);
+          this.leadPivotMotor.getConfigurator().apply(config);
         },
         kP,
         kI,
@@ -270,19 +262,87 @@ public class PivotIOTalonFX implements PivotIO {
   @Override
   public void setAngle(Angle angle) {
     leadPivotMotor.setControl(
-        pivotLeadMotorPositionRequest.withPosition(); // FIXME: Unsure of how angle is handled
-    )
+        pivotLeadMotorPositionRequest.withPosition(angle) // FIXME: Unsure of how angle is handled
+    );
   }
 
   private void configPivotMotorLead(TalonFX motor) {
     TalonFXConfiguration config = new TalonFXConfiguration();
-
-    config.CurrentLimits.SupplyCurrentLimit = PivotConstants.ANGLE_MOTOR_PEAK_CURRENT_DURATION;
-    config.CurrentLimits.SupplyCurrentLowerLimit = PivotConstants.ANGLE_MOTOR_PEAK_CURRENT_LIMIT; // FIXME: ? It could be OK that these are the same, unsure
-    config.CurrentLimits.SupplyCurrentLowerTime = 0;
-    config.SupplyCurrentLimitEnable = true;
-    config.CurrentLimits.StatorCurrentLimit = PivotConstants.ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerTime =
+        0; // FIXME: Not sure on value though 0 may be right
+    config.CurrentLimits.SupplyCurrentLimitEnable = true;
+    config.CurrentLimits.StatorCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
+
+    config.Feedback.SensorToMechanismRatio = ANGLE_MOTOR_GEAR_RATIO;
+
+    config.MotorOutput.Inverted =
+        ANGLE_MOTOR_INVERTED
+            ? InvertedValue.Clockwise_Positive
+            : InvertedValue.CounterClockwise_Positive;
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    // FIXME: Especially unsure about the above two statements
+
+    Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertLead);
+
+    FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, ("pivot " + motor), motor);
+
   }
 
+  private void configPivotMotorFollower1(TalonFX motor) {
+    TalonFXConfiguration config = new TalonFXConfiguration();
+    config.CurrentLimits.SupplyCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerTime =
+        0; // FIXME: Not sure on value though 0 may be right
+    config.CurrentLimits.SupplyCurrentLimitEnable = true;
+    config.CurrentLimits.StatorCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    // FIXME: Especially unsure about the above two statements
+
+    Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertFollower1);
+
+    FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, ("pivot " + motor), motor);
+
+  }
+  private void configPivotMotorFollower2(TalonFX motor) {
+    TalonFXConfiguration config = new TalonFXConfiguration();
+    config.CurrentLimits.SupplyCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerTime =
+        0; // FIXME: Not sure on value though 0 may be right
+    config.CurrentLimits.SupplyCurrentLimitEnable = true;
+    config.CurrentLimits.StatorCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    // FIXME: Especially unsure about the above two statements
+
+    Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertFollower2);
+
+    FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, ("pivot " + motor), motor);
+
+  }
+  private void configPivotMotorFollower3(TalonFX motor) {
+    TalonFXConfiguration config = new TalonFXConfiguration();
+    config.CurrentLimits.SupplyCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerTime =
+        0; // FIXME: Not sure on value though 0 may be right
+    config.CurrentLimits.SupplyCurrentLimitEnable = true;
+    config.CurrentLimits.StatorCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    // FIXME: Especially unsure about the above two statements
+
+    Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertFollower3);
+
+    FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, ("pivot " + motor), motor);
+
+  }
 }

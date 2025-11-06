@@ -15,20 +15,24 @@ public interface PivotIO {
   public static class PivotIOInputs {
     double voltageSupplied = 0.0;
     double statorCurrentAmps = 0.0;
-    double supplyCurrentAmps = 0.0; 
-    double angleMotorClosedLoopErrorAngleDegrees = 0.0;
-    double closedLoopReferenceAngleDegrees = 0.0;   
-    double angleMotorTemperatureCelsius = 0.0;
-    double positionAngleDegrees = 0.0;  
-    double angleDegrees= 0.0;
+    double supplyCurrentAmps = 0.0;
+    double closedLoopError = 0.0;
+    double closedLoopReference = 0.0;
+    double leadTempCelsius = 0.0;
+    double follower1TempCelsius = 0.0;
+    double follower2TempCelsius = 0.0;
+    double follower3TempCelsius = 0.0;
+    double positionAngleDegrees = 0.0;
+    double angleDegrees = 0.0;
     double angleMotorReferenceAngleDegrees;
 
-
-    boolean connected = false;
+    boolean pivotConnected = false;
   }
 
   public default void setVoltage(double voltage) {}
+
   public default void setAngle(Angle angle) {}
+
   public default void updateInputs(PivotIOInputs inputs) {}
-  //public Object setAngleMotorVoltage(double in);
+  // public Object setAngleMotorVoltage(double in);
 }
