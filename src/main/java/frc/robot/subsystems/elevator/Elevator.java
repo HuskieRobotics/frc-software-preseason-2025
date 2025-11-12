@@ -41,10 +41,9 @@ public class Elevator extends SubsystemBase {
 
     private LinearFilter current = LinearFilter.singlePoleIIR(0.0, 0.0);//change later
 
-    priavte final ElevatorIO.ElevatorIOInputs inputs = new ElevatorIO.ElevatorIOInputs();
+    private final ElevatorIO.ElevatorIOInputs inputs = new ElevatorIO.ElevatorIOInputs();
 
     public Elevator(ElevatorIO io) {
-        this.ElevatorIO = io;
-
-        
+        this.io = io;
     }
+}

@@ -44,11 +44,9 @@ public class ElevatorIOTalonFX implements ElevatorIO(){
     private StatusSignal<Volts> leadMotorVoltageSupplyCurrent;
     private StatusSignal<Amps> leadMotorSupplyCurrent;
     private StatusSignal<Temperature> leadMotorTemp;
-    private StatusSignal<RPS> leadMotorVelocity;
-    private StatusSignal<Position> leadMotorPosition;
+    private StatusSignal<AngularVelocity> leadMotorVelocity;
+    private StatusSignal<Angle> leadMotorPosition;
     private StatusSignal<Position> leadMotorRPS;//no. of rotations
-    private StatusSignal<LoopError> leadMotorLoopError;
-    private StatusSignal<LoopReference> leadMotorLoopReference;
 
     private final Debouncer topMotorConnectedDebouncer = new Debouncer(Constants.kMotorConnectionDebounceTimeSeconds);
     private final Debouncer followerMotorConnectedDebouncer = new Debouncer(Constants.kMotorConnectionDebounceTimeSeconds);
@@ -114,14 +112,73 @@ public class ElevatorIOTalonFX implements ElevatorIO(){
         inputs.followerMotorRotations = followerMotorRotations.getValue();
 
         ElevatorSystemSim.updateSim();
+
+        if (Constants.TUNING_MODE) {
+      inputs.leadMotorClosedLoopReferenceVelocityRPS =
+          leadMotor.getClosedLoopReference().getValue();
+      inputs.leadMotorClosedLoopErrorVelocityRPS =
+          leadMotor.getClosedLoopError().getValue();
+    }
     }
 
     private void configureElevatorMotors(TalonFX motor) {
         TalonFXConfiguration config = new TalonFXConfiguration();
 
         MotionMagicConfig motionMagicConfig = new MotionMagicConfig();
-        
+
         //Need to set the config values here & I don't know how to do that
+        alonFXConfiguration config = new TalonFXConfiguration();
+
+        MotionMagicConfigs leadMotorConfig = config.MotionMagic;
+
+        config.Feedback.SensorToMechanismRatio = GEAR_RATIO;
+
+        config.CurrentLimits.SupplyCurrentLimit = ELEVATOR_PEAK_CURRENT_LIMIT;
+        config.CurrentLimits.SupplyCurrentLowerLimit = ELEVATOR_PEAK_CURRENT_LIMIT;
+        config.CurrentLimits.SupplyCurrentLowerTime = 0;
+        config.CurrentLimits.SupplyCurrentLimitEnable = true;
+        config.CurrentLimits.StatorCurrentLimit = ELEVATOR_PEAK_CURRENT_LIMIT;
+        config.CurrentLimits.StatorCurrentLimitEnable = true;
+
+        config.MotorOutput.Inverted =
+            IS_INVERTED ? InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
+
+        config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+
+        config.Slot0.kP = kPslot0.get();
+        config.Slot0.kI = kIslot0.get();
+        config.Slot0.kD = kDslot0.get();
+        config.Slot0.kS = kSslot0.get();
+        config.Slot0.kV = kVslot0.get();
+        config.Slot0.kA = kAslot0.get();
+        config.Slot0.kG = kGslot0.get();
+
+        config.Slot0.withGravityType(GravityTypeValue.Elevator_Static);
+
+        config.Slot1.kP = kPslot1.get();
+        config.Slot1.kI = kIslot1.get();
+        config.Slot1.kD = kDslot1.get();
+        config.Slot1.kS = kSslot1.get();
+        config.Slot1.kV = kVslot1.get();
+        config.Slot1.kA = kAslot1.get();
+        config.Slot1.kG = kGslot1.get();
+
+        config.Slot1.withGravityType(GravityTypeValue.Elevator_Static);
+
+        leadMotorConfig.MotionMagicExpo_kA = kAExpo.get();
+        leadMotorConfig.MotionMagicExpo_kV = kVExpo.get();
+
+        leadMotorConfig.MotionMagicCruiseVelocity = cruiseVelocity.get();
+
+        // configure a hardware limit switch that zeros the elevator when lowered; there is no hardware
+        // limit switch, but we will set it using a control request
+        config.HardwareLimitSwitch.ReverseLimitAutosetPositionEnable = true;
+        config.HardwareLimitSwitch.ReverseLimitAutosetPositionValue = 0.0;
+        config.HardwareLimitSwitch.ReverseLimitEnable = true;
+
+        Phoenix6Util.applyAndCheckConfiguration(elevatorMotorLead, config, leadConfigAlert);
+
+        FaultReporter.getInstance().registerHardware(ElevatorConstants.SUBSYSTEM_NAME, "Elevator Motor Lead", motor);
     }
 
     @Override
@@ -129,11 +186,11 @@ public class ElevatorIOTalonFX implements ElevatorIO(){
         elevatorMotorLead.setVoltage(leadVoltageRequest.withOutput(voltage));
         elevatorMotorFollower.setVoltage(followerVoltageRequest.withOutput(voltage));
     }
-    //FIXME:need to complete method to set position here
     @Override
     public void setPosition(Distance position) {
+        elevatorMotorLead.setControl(elevatorPositionRequest.withPosition(position.in(inches) / CIRCUMFERENCE));
     }
-
+    //FIXME:need to complete method to set position here
     @Override
     public void zeroPosition() {
     }
