@@ -13,7 +13,6 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Current;
@@ -78,7 +77,7 @@ public class PivotIOTalonFX implements PivotIO {
       new Alert("Failed to apply configuration for pivot follower 1", AlertType.kError);
   private Alert configAlertFollower2 =
       new Alert("Failed to apply configuration for pivot follower 2", AlertType.kError);
-  private Alert configAlertFollower3 = 
+  private Alert configAlertFollower3 =
       new Alert("Failed to apply configuration for pivot follower 3", AlertType.kError);
 
   // The following enables tuning of the PID and feedforward values for the arm by changing values
@@ -99,9 +98,8 @@ public class PivotIOTalonFX implements PivotIO {
       new LoggedTunableNumber("Pivot/PIVOT_KD", PivotConstants.PIVOT_KD);
   private final LoggedTunableNumber kAExpo =
       new LoggedTunableNumber("Pivot/PIVOT_KA_EXPO", PivotConstants.PIVOT_KA_EXPO);
-  private final LoggedTunableNumber kVExpo = 
+  private final LoggedTunableNumber kVExpo =
       new LoggedTunableNumber("Pivot/PIVOT_KV_EXPO", PivotConstants.PIVOT_KV_EXPO);
-
 
   public PivotIOTalonFX() {
     leadPivotMotor = new TalonFX(PIVOT_LEAD_MOTOR_ID);
@@ -152,43 +150,43 @@ public class PivotIOTalonFX implements PivotIO {
         voltageSuppliedFollower2,
         voltageSuppliedFollower3);
 
-        pivotLeadMotorPositionRequest = new MotionMagicExpoVoltage(0);
-        pivotLeadMotorVoltageRequest = new VoltageOut(0);
+    pivotLeadMotorPositionRequest = new MotionMagicExpoVoltage(0);
+    pivotLeadMotorVoltageRequest = new VoltageOut(0);
 
-        configPivotMotorLead(leadPivotMotor);
-        configPivotMotorFollower1(followerPivotMotor1);
-        configPivotMotorFollower2(followerPivotMotor2);
-        configPivotMotorFollower3(followerPivotMotor3);
+    configPivotMotorLead(leadPivotMotor);
+    configPivotMotorFollower1(followerPivotMotor1);
+    configPivotMotorFollower2(followerPivotMotor2);
+    configPivotMotorFollower3(followerPivotMotor3);
 
-        followerPivotMotor1.setControl(new Follower(leadPivotMotor.getDeviceID(), false));
-        followerPivotMotor2.setControl(new Follower(leadPivotMotor.getDeviceID(), true));
-        followerPivotMotor3.setControl(new Follower(leadPivotMotor.getDeviceID(), true));
+    followerPivotMotor1.setControl(new Follower(leadPivotMotor.getDeviceID(), false));
+    followerPivotMotor2.setControl(new Follower(leadPivotMotor.getDeviceID(), true));
+    followerPivotMotor3.setControl(new Follower(leadPivotMotor.getDeviceID(), true));
 
-        pivotSystemSim = 
-            new ArmSystemSim(
-                leadPivotMotor,
-                PivotConstants.ANGLE_MOTOR_INVERTED,
-                PivotConstants.SENSOR_TO_MECHANISM_RATIO,
-                0, // FIXME: Should be length, no value in PivotConstants
-                PivotConstants.PIVOT_MASS_KG,
-                PivotConstants.LOWER_ANGLE_LIMIT,
-                PivotConstants.UPPER_ANGLE_LIMIT,
-                0, //FIXME: Should be startingAngle, no value in PivotConstants
-                PivotConstants.SUBSYSTEM_NAME);
-
-    }
+    pivotSystemSim =
+        new ArmSystemSim(
+            leadPivotMotor,
+            PivotConstants.ANGLE_MOTOR_INVERTED,
+            PivotConstants.SENSOR_TO_MECHANISM_RATIO,
+            0, // FIXME: Should be length, no value in PivotConstants
+            PivotConstants.PIVOT_MASS_KG,
+            PivotConstants.LOWER_ANGLE_LIMIT,
+            PivotConstants.UPPER_ANGLE_LIMIT,
+            0, // FIXME: Should be startingAngle, no value in PivotConstants
+            PivotConstants.SUBSYSTEM_NAME);
+  }
 
   @Override
   public void updateInputs(PivotIOInputs inputs) {
-    // Determine if motors are still connected (reachable on CAN bus). If they are not they return an error.
-        inputs.pivotConnected =
-            connectedLeadDebouncer.calculate(
-                BaseStatusSignal.isAllGood(
-                    voltageSuppliedLead,
-                    leadStatorCurrent,
-                    leadSupplyCurrent,
-                    leadTemperature,
-                    pivotAngleDegrees));
+    // Determine if motors are still connected (reachable on CAN bus). If they are not they return
+    // an error.
+    inputs.pivotConnected =
+        connectedLeadDebouncer.calculate(
+            BaseStatusSignal.isAllGood(
+                voltageSuppliedLead,
+                leadStatorCurrent,
+                leadSupplyCurrent,
+                leadTemperature,
+                pivotAngleDegrees));
 
     inputs.voltageSupplied = voltageSuppliedLead.getValueAsDouble();
 
@@ -196,14 +194,13 @@ public class PivotIOTalonFX implements PivotIO {
 
     inputs.supplyCurrentAmps = leadSupplyCurrent.getValueAsDouble();
 
-
     inputs.leadTempCelsius = leadTemperature.getValueAsDouble();
     inputs.follower1TempCelsius = follower1Temperature.getValueAsDouble();
     inputs.follower2TempCelsius = follower2Temperature.getValueAsDouble();
     inputs.follower3TempCelsius = follower3Temperature.getValueAsDouble();
 
     inputs.angleDegrees = pivotAngleDegrees.getValueAsDouble();
-    
+
     // Retrieve the closed loop reference status signals directly from the motor in this method
     // instead of retrieving in advance because the status signal returned depends on the current
     // control mode. To eliminate the performance hit, only retrieve the closed loop reference
@@ -233,7 +230,7 @@ public class PivotIOTalonFX implements PivotIO {
           config.MotionMagic.MotionMagicExpo_kV = motionMagic[7];
           config.MotionMagic.MotionMagicExpo_kA = motionMagic[8];
 
-          //config.MotionMagic.MotionMagicCruiseVelocity = motionMagic[9]; 
+          // config.MotionMagic.MotionMagicCruiseVelocity = motionMagic[9];
           // FIXME: Unsure if this is needed, probably not
 
           this.leadPivotMotor.getConfigurator().apply(config);
@@ -246,12 +243,11 @@ public class PivotIOTalonFX implements PivotIO {
         kA,
         kG,
         kVExpo,
-        kAExpo/*,
-        cruiseVelocity*/);
+        kAExpo /*,
+               cruiseVelocity*/);
 
-        pivotSystemSim.updateSim();
-    }
-
+    pivotSystemSim.updateSim();
+  }
 
   @Override
   public void setVoltage(double voltage) {
@@ -263,7 +259,7 @@ public class PivotIOTalonFX implements PivotIO {
   public void setAngle(Angle angle) {
     leadPivotMotor.setControl(
         pivotLeadMotorPositionRequest.withPosition(angle) // FIXME: Unsure of how angle is handled
-    );
+        );
   }
 
   private void configPivotMotorLead(TalonFX motor) {
@@ -288,7 +284,6 @@ public class PivotIOTalonFX implements PivotIO {
     Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertLead);
 
     FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, ("pivot " + motor), motor);
-
   }
 
   private void configPivotMotorFollower1(TalonFX motor) {
@@ -307,8 +302,8 @@ public class PivotIOTalonFX implements PivotIO {
     Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertFollower1);
 
     FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, ("pivot " + motor), motor);
-
   }
+
   private void configPivotMotorFollower2(TalonFX motor) {
     TalonFXConfiguration config = new TalonFXConfiguration();
     config.CurrentLimits.SupplyCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
@@ -325,8 +320,8 @@ public class PivotIOTalonFX implements PivotIO {
     Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertFollower2);
 
     FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, ("pivot " + motor), motor);
-
   }
+
   private void configPivotMotorFollower3(TalonFX motor) {
     TalonFXConfiguration config = new TalonFXConfiguration();
     config.CurrentLimits.SupplyCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
@@ -343,6 +338,5 @@ public class PivotIOTalonFX implements PivotIO {
     Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertFollower3);
 
     FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, ("pivot " + motor), motor);
-
   }
 }

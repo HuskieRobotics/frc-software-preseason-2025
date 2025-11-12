@@ -6,11 +6,8 @@ import static frc.robot.subsystems.pivot.PivotConstants.*;
 import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.lib.team3015.subsystem.FaultReporter;
 import frc.lib.team3061.util.SysIdRoutineChooser;
 import frc.lib.team6328.util.LoggedTracer;
 import frc.lib.team6328.util.LoggedTunableNumber;
@@ -69,8 +66,7 @@ public class Pivot extends SubsystemBase {
               Volts.of(2.0), // override default step voltage (7 V)
               null, // use default timeout (10 s)
               state -> SignalLogger.writeString("SysId_State", state.toString())),
-          new SysIdRoutine.Mechanism(
-              output -> io.setAngleMotorVoltage(output.in(Volts)), null, this));
+          new SysIdRoutine.Mechanism(output -> io.setVoltage(output.in(Volts)), null, this));
 
   public Pivot(PivotIO io) {
     this.io = io;
@@ -81,7 +77,7 @@ public class Pivot extends SubsystemBase {
 
     // Register this subsystem's system check command with the fault reporter. The system check
     // command can be added to the Elastic Dashboard to execute the system test.
-    FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getSystemCheckCommand());
+    // FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getSystemCheckCommand());
   }
 
   @Override
@@ -98,7 +94,7 @@ public class Pivot extends SubsystemBase {
       if (pivotAngleDegrees.get() != 0) {
         io.setAngle(Degrees.of(pivotAngleDegrees.get()));
       } else if (angleManualControlVoltage.get() != 0) {
-        io.setAngleMotorVoltage(angleManualControlVoltage.get());
+        io.setVoltage(angleManualControlVoltage.get());
       }
     }
 
@@ -113,11 +109,17 @@ public class Pivot extends SubsystemBase {
   public void setAngle(Angle angle) {
     io.setAngle(angle);
   }
-  
 
-  
+  public Angle getPositionAngle() {
+    return Angle.of(inputs.positionAngleDegrees);
+  }
 
-  
+  // public boolean isAtPosition() {
+  // if(Math.abs(PivotIOInputs.angleDegrees-PivotIOInputs.angleMotorReferenceAngleDegrees) <
+  // ANGLE_TOLERANCE_DEGREES) {
+  // return true;
+  // } else {
+  // return false;
+  // }
 
-  
 }
