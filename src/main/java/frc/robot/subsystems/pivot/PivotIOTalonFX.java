@@ -179,7 +179,7 @@ public class PivotIOTalonFX implements PivotIO {
   public void updateInputs(PivotIOInputs inputs) {
     // Determine if motors are still connected (reachable on CAN bus). If they are not they return
     // an error.
-    inputs.pivotConnected =
+    inputs.leadMotorConnected =
         connectedLeadDebouncer.calculate(
             BaseStatusSignal.isAllGood(
                 voltageSuppliedLead,
@@ -187,12 +187,33 @@ public class PivotIOTalonFX implements PivotIO {
                 leadSupplyCurrent,
                 leadTemperature,
                 pivotAngleDegrees));
+    inputs.follower1MotorConnected =
+        connectedFollower1Debouncer.calculate(
+            BaseStatusSignal.isAllGood(
+                voltageSuppliedFollower1,
+                follower1StatorCurrent,
+                follower1SupplyCurrent,
+                follower1Temperature));
+    inputs.follower2MotorConnected =
+        connectedFollower2Debouncer.calculate(
+            BaseStatusSignal.isAllGood(
+                voltageSuppliedFollower2,
+                follower2StatorCurrent,
+                follower2SupplyCurrent,
+                follower2Temperature));
+    inputs.follower3MotorConnected =
+        connectedFollower3Debouncer.calculate(
+            BaseStatusSignal.isAllGood(
+                voltageSuppliedFollower3,
+                follower3StatorCurrent,
+                follower3SupplyCurrent,
+                follower3Temperature));
 
-    inputs.voltageSupplied = voltageSuppliedLead.getValueAsDouble();
+    inputs.leadvoltageSupplied = voltageSuppliedLead.getValueAsDouble();
 
-    inputs.statorCurrentAmps = leadStatorCurrent.getValueAsDouble();
+    inputs.leadstatorCurrentAmps = leadStatorCurrent.getValueAsDouble();
 
-    inputs.supplyCurrentAmps = leadSupplyCurrent.getValueAsDouble();
+    inputs.leadsupplyCurrentAmps = leadSupplyCurrent.getValueAsDouble();
 
     inputs.leadTempCelsius = leadTemperature.getValueAsDouble();
     inputs.follower1TempCelsius = follower1Temperature.getValueAsDouble();

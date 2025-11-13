@@ -111,7 +111,7 @@ public class Pivot extends SubsystemBase {
   }
 
   public Angle getPositionAngle() {
-    return Angle.of(inputs.positionAngleDegrees);
+    return Angle.of(inputs.angleDegrees);
   }
 
   // public boolean isAtPosition() {
