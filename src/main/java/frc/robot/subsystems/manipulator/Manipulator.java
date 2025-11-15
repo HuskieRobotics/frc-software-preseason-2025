@@ -124,24 +124,32 @@ public class Manipulator extends SubsystemBase {
         subsystem.setManipulatorMotorVoltage(
             Volts.of(subsystem.manipulatorCollectionVoltage.get()));
       }
+    },
+
+    CENTERING_CORAL_LEFT {
+      @Override
+      void onEnter(Manipulator subsystem) {
+        subsystem.setManipulatorMotorVoltage(
+            Volts.of(subsystem.manipulatorCollectionVoltage.get()));
+      }
 
       @Override
       void execute(Manipulator subsystem) {
 
-        LEDs.getInstance().requestState(States.WAITING_FOR_GAME_PIECE);
+        LEDs.getInstance().requestState(States.CENTERING_CORAL_LEFT);
 
-        // Often preloading a game piece requires a special case state transition.
-        if (DriverStation.isDisabled() && subsystem.isManipulatorIRBlocked()) {
+        // Check if the coral is centered in the funnel
+        if (subsystem.isManipulatorIRBlocked()) {
           subsystem.setState(State.GAME_PIECE_IN_MANIPULATOR);
         }
-        // check if the game piece is detected by the manipulator
-        else if (subsystem.isManipulatorIRBlocked()) {
-          subsystem.setState(State.INDEXING_GAME_PIECE_IN_MANIPULATOR);
-        }
+        // Timeout or other conditions can be added here if centering fails
       }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        // Stop the motor after centering
+        subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
+      }
     },
 
     INDEXING_GAME_PIECE_IN_MANIPULATOR {
