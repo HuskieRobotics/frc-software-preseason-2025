@@ -31,19 +31,111 @@ import org.littletonrobotics.junction.Logger;
 public class Elevator extends SubsystemBase {
     private final ElevatorIO io;
     private ScoringHeight targetPosition = ScoringHeight.HARDSTOP;
-    private Transform2d distanceFromReef = new Transform2d(); //distance from the reef to elevator, but dont know the value to keep
+    private Transform2d distanceFromReef = new Transform2d(); //distance from the reef to elevator, FIXME: change later
     private Alert hardstopAlert = new Alert("Elevator has reached hardstop!", AlertType.kWarning);
     private Alert jammedAlert = new Alert("Elevator appears to be jammed!", AlertType.kError);
 
     private boolean hasBeenZeroed = false;
 
-    private LinearFilter current = LinearFilter.singlePoleIIR(0.0, 0.0);//change later
-
-    private LinearFilter current = LinearFilter.singlePoleIIR(0.0, 0.0);//change later
-
+    private final LinearFilter jamFilter = LinearFilter.singlePoleIIR(0.0, 0.00);
+ 
     private final ElevatorIO.ElevatorIOInputs inputs = new ElevatorIO.ElevatorIOInputs();
 
     public Elevator(ElevatorIO io) {
         this.io = io;
+        FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getElevatorSystemCheckCommand());
+    }
+ 
+    @Override
+    public void periodic() {
+        io.updateInputs(inputs);
+        Logger.getInstance().processInputs(SUBSYSTEM_NAME, inputs);
+ 
+        Logger.getInstance().recordOutput(SUBSYSTEM_NAME + "/targetPosition", targetPosition);
+        Logger.getInstance().recordOutput(SUBSYSTEM_NAME + "/distanceFromReef", distanceFromReef);
+ 
+        if (jamFilter.calculate(Math.abs(inputs.statorCurrentAmpsLead)) > JAMMED_CURRENT) {
+            CommandScheduler.getInstance()
+                .schedule(
+                    Commands.sequence(
+                        Commands.runOnce(() -> io.setMotorVoltage(0.0), this),
+                        Commands.run(() -> LEDs.getInstance().requestState(LEDs.States.ELEVATOR_JAMMED))
+                            .withTimeout(1.0))
+                        .withName("stop elevator jammed"));
+            jammedAlert.set(true);
+        } else {
+            jammedAlert.set(false);
+        }
+    }
+ 
+    public Command getElevatorSystemCheckCommand() {
+        return Commands.sequence(
+                getTestPositionCommand(ScoringHeight.L1),
+                getTestPositionCommand(ScoringHeight.ABOVE_L1),
+                getTestPositionCommand(ScoringHeight.L2),
+                getTestPositionCommand(ScoringHeight.L3),
+                getTestPositionCommand(ScoringHeight.L4),
+                getTestPositionCommand(ScoringHeight.MAX_L2),
+                getTestPositionCommand(ScoringHeight.MAX_L3),
+                getTestPositionCommand(ScoringHeight.BELOW_LOW_ALGAE),
+                getTestPositionCommand(ScoringHeight.LOW_ALGAE),
+                getTestPositionCommand(ScoringHeight.BELOW_HIGH_ALGAE),
+                getTestPositionCommand(ScoringHeight.HIGH_ALGAE),
+                getTestPositionCommand(ScoringHeight.BARGE),
+                getTestPositionCommand(ScoringHeight.PROCESSOR))
+            .until(() -> !FaultReporter.getInstance().getFaults(SUBSYSTEM_NAME).isEmpty())
+            .andThen(getElevatorLowerAndResetCommand())
+            .withName(SUBSYSTEM_NAME + "SystemCheck");
+    }
+
+    private Command getTestPositionCommand(ScoringHeight reefBranch) {
+        return Commands.sequence(
+            Commands.runOnce(() -> goToPosition(reefBranch)),
+            Commands.waitUntil(() -> isAtPosition(reefBranch))
+            );      
+    }
+
+    public Distance getHeightForScoringPosition(ScoringHeight position) {
+        switch (position) {
+            case L1:
+                return L1_HEIGHT;
+            case L2:
+                return L2_HEIGHT;
+            case L3:
+                return L3_HEIGHT;
+            case L4:
+                return L4_HEIGHT;
+            default:
+                return MIN_HEIGHT;
+        }
+    }
+    
+    public boolean isAtPosition(ScoringHeight reefBranch) {
+        return atPosition(reefBranch);
+    }
+    
+    public boolean isAtTargetPosition() {
+        Distance targetHeight = getHeightForScoringPosition(targetPosition);
+        return Math.abs(inputs.positionInches - targetHeight.inches()) < POSITION_TOLERANCE.inches(); 
+    }
+    
+    public void setTargetPosition(ScoringHeight position) {
+        this.targetPosition = position;
+        Distance targetHeight = getHeightForScoringPosition(position);
+        io.setPosition(targetHeight);
+    }
+    
+    public void gotoPosition(ScoringHeight position) {
+        setTargetPosition(position);
+    }
+    
+    public boolean atPosition(ScoringHeight position) {
+        Distance target = getHeightForScoringPosition(position);
+        return Math.abs(inputs.positionInches - target.inches()) < POSITION_TOLERANCE.inches();
+    }
+    
+    public void zeroPosition() {
+        io.zeroPosition();
+        hasBeenZeroed = true;
     }
 }

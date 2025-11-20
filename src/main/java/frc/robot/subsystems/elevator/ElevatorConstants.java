@@ -12,6 +12,8 @@ public class ShooterConstants{
     public static final int LEAD_MOTOR_ID = 1; //TODO: set correct
     public static final int FOLLOWER_MOTOR_ID = 1; //TODO: set correct
 
+    public static final double JAMMED_CURRENT_THRESHOLD = 0.0; //TODO: set correct
+
     public static final String SUBSYSTEM_NAME = "Elevator";
 
     public static final boolean DEBUGGING = true;
@@ -24,14 +26,6 @@ public class ShooterConstants{
     public static final double KV_SLOT0 = 0.0;
     public static final double KA_SLOT0 = 0.0;
     public static final double KG_SLOT0 = 0.0;
-
-    public static final double KP_SLOT1 = 0.0;
-    public static final double KI_SLOT1 = 0.0;
-    public static final double KD_SLOT1 = 0.0;
-    public static final double KS_SLOT1 = 0.0;
-    public static final double KV_SLOT1 = 0.0;
-    public static final double KA_SLOT1 = 0.0;
-    public static final double KG_SLOT1 = 0.0;
 
     public static final double CRUISE_VELOCITY = 0.0;
     public static final double KV_EXPO = 0.0;

@@ -190,8 +190,11 @@ public class ElevatorIOTalonFX implements ElevatorIO(){
     public void setPosition(Distance position) {
         elevatorMotorLead.setControl(elevatorPositionRequest.withPosition(position.in(inches) / CIRCUMFERENCE));
     }
-    //FIXME:need to complete method to set position here
+
     @Override
     public void zeroPosition() {
+        // we set the reverse limit instead of directly setting the position to avoid the overhead of a
+        // config call
+        elevatorMotorLead.setControl(leadVoltageRequest.withLimitReverseMotion(true).withOutput(0.0));
     }
 }
