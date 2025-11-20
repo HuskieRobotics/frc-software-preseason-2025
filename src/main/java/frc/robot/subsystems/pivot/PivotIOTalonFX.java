@@ -56,7 +56,7 @@ public class PivotIOTalonFX implements PivotIO {
 
   private StatusSignal<Angle> pivotAngleDegrees;
 
-  //private double angleMotorReferenceAngleDegrees = 0.0;, unsure what this is for?
+  // private double angleMotorReferenceAngleDegrees = 0.0;, unsure what this is for?
 
   private final Debouncer connectedLeadDebouncer = new Debouncer(0.5);
   private final Debouncer connectedFollowerSameSideDebouncer = new Debouncer(0.5);
@@ -73,7 +73,6 @@ public class PivotIOTalonFX implements PivotIO {
       new Alert("Failed to apply configuration for pivot follower 2", AlertType.kError);
   private Alert configAlertFollowerOppositeSide2 =
       new Alert("Failed to apply configuration for pivot follower 3", AlertType.kError);
-
 
   private final LoggedTunableNumber kG =
       new LoggedTunableNumber("Pivot/PIVOT_KG", PivotConstants.PIVOT_KG);
@@ -217,7 +216,7 @@ public class PivotIOTalonFX implements PivotIO {
       inputs.closedLoopError = leadPivotMotor.getClosedLoopError().getValueAsDouble();
       inputs.closedLoopReference = leadPivotMotor.getClosedLoopReference().getValueAsDouble();
     }
-    
+
     LoggedTunableNumber.ifChanged(
         hashCode(),
         motionMagic -> {
