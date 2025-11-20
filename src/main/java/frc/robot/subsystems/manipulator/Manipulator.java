@@ -13,382 +13,402 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.lib.team3015.subsystem.FaultReporter;
 import frc.lib.team3061.leds.LEDs;
 import frc.lib.team3061.leds.LEDs.States;
+import frc.lib.team3061.util.SysIdRoutineChooser;
 import frc.lib.team6328.util.LoggedTracer;
 import frc.lib.team6328.util.LoggedTunableNumber;
 import frc.robot.operator_interface.OISelector;
 import org.littletonrobotics.junction.Logger;
 
-/**
- * Example subsystem for controlling an intake or manipulator mechanism.
- *
- * <p>WARNING: This code is for example purposes only. It will not work with a physical manipulator
- * mechanism without changes. While it is derived from Huskie Robotics 2025 manipulator, it has been
- * simplified to highlight select best practices.
- *
- * <p>This example illustrates the following features:
- *
- * <ul>
- *   <li>Use of a state machine to model a sophisticated mechanism
- *   <li>Use of a sensor, with redundancy, to detect the presence of a game piece
- *   <li>AdvantageKit support for logging and replay
- *   <li>Use of a current filters to determine if the game piece has stalled against the hard stop
- *   <li>Use of logged tunable numbers for manual control and testing
- *   <li>Use of a system check command to verify the manipulator's functionality
- *   <li>Use of a fault reporter to report issues with the manipulator's motor
- * </ul>
- */
-public class Manipulator extends SubsystemBase {
-
-  // all subsystems receive a reference to their IO implementation when constructed
+public class Manipulator extends SubsystemBase 
+{
   private ManipulatorIO io;
 
-  // all subsystems create the AutoLogged version of their IO inputs class
-  private final ManipulatorIOInputsAutoLogged inputs = new ManipulatorIOInputsAutoLogged();
+  //private final ManipulatorIOInputsAutoLogged inputs = new ManipulatorIOInputsAutoLogged();
+  // Add testing mode tunables here if necesary!
 
-  // When initially testing a mechanism, it is best to manually provide a voltage or current to
-  // verify the mechanical functionality. At times, this can be done via Phoenix Tuner. However,
-  // when multiple motors are involved, that is not possible. Using a tunables to enable testing
-  // mode and, for the manipulator, specifying voltage is convenient. This feature is also an
-  // efficient approach when, for example, empirically tuning the voltage to optimize performance
-  // when collecting a game piece.
-  private final LoggedTunableNumber testingMode =
-      new LoggedTunableNumber("Manipulator/TestingMode", 0);
-  private final LoggedTunableNumber manipulatorMotorVoltage =
-      new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
-  public final LoggedTunableNumber manipulatorCollectionVoltage =
-      new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
-  public final LoggedTunableNumber manipulatorReleaseVoltage =
-      new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
-  public final LoggedTunableNumber manipulatorEjectVoltage =
-      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
+  private State state = State.WAITING_FOR_L1_CORAL_IN_FUNNEL; 
+  // We are setting it to WAITING_FOR_L1_CORAL_IN_FUNNEL but if the coral needs to be set on l2 through l4,
+  // then there are other states that can do that.
+  private State lastState = State.UNITIALIZED;
 
-  // Initialize the last state to the uninitialized state and the current state to the desired
-  // initial state to ensure that the onEnter method is invoked when the subsystem in constructed.
-  private State state = State.WAITING_FOR_GAME_PIECE;
-  private State lastState = State.UNINITIALIZED;
+  Timer inIndexingState = new Timer(); // assosiated with CORAL_IN_MANIPULATOR_L1 state
 
-  // Some state transitions are triggered by a timeout. Use Timer objects for that purpose.
-  Timer inIndexingState = new Timer();
-  Timer ejectingTimer = new Timer();
-
-  // Use a linear filter to detect when the game piece has stalled against the hard stop. We want to
-  // use a filter to eliminate false positives due to current spikes that may occur when the motor
-  // starts or when the game piece first makes contact with the manipulator.
-  private LinearFilter currentInAmps = LinearFilter.singlePoleIIR(0.1, 0.02);
-
-  // Some state transitions are triggered by the driver or operator via a button press. We don't
-  // want those commands to directly change the state as that can result in a missed state
-  // transition. Instead, those commands will change a variable which is monitored within the state
-  // machine.
-  private boolean releaseButtonPressed = false;
+  // Instance variables for inputs
+  private boolean shootCoralButtonPressed = false;
+  // add one more for shooter
 
   public Manipulator(ManipulatorIO io) {
-
     this.io = io;
 
-    // Register this subsystem's system check command with the fault reporter. The system check
-    // command can be added to the Elastic Dashboard to execute the system test.
+    // to do, finish the constructor code
+
+    SysIdRoutineChooser.getInstance()
+        .addOption( "Funnel Current", sysIDFunnel); // changed name from "Manipulator Current" and sysIDManipulator to "Funnel
+    // Current" and sysIDFunnel
+
+    SysIdRoutineChooser.getInstance().addOption("Indexer Current", sysIDIndexer);
+    // SysIdRoutineChooser.getInstance().addOption("Pivot Voltage", sysIdPivot);
+
     FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getSystemCheckCommand());
-  }
 
-  /**
-   * Few subsystems require the complexity of a state machine. A simpler command-based approach is
-   * usually better. However, there are times when diagraming and implementing a formal state
-   * machine is a reasonable approach. This code is designed to facilitate mapping from a formal
-   * state machine diagram to code.
-   *
-   * <p>The state machine is defined as an enum with each state having its own execute, onEnter, and
-   * onExit methods. The execute method is called every iteration of the periodic method. The
-   * onEnter and onExit methods are called when the state is entered and exited, respectively.
-   * Transitions between states are defined in the execute methods. It is critical that the setState
-   * method is only invoked within a state's execute method. Otherwise, it is possible for a state
-   * transition to be missed.
-   *
-   * <p>Our best practice is set the voltage/current/velocity/position of each device in the onEnter
-   * method of each state. This simplifies needing to keep track of which states could have been the
-   * previous states and the associated states of these devices.
-   *
-   * <p>This example state machine models a manipulator that collects a game piece. The game piece
-   * is first detected by a sensor. However, it is not considered indexed (i.e., fully collected)
-   * until the game piece stalls against the hard stop. This example also models detecting if the
-   * game piece becomes jammed while collecting and attempts to unjam the game piece or eject it.
-   * The game piece is released in response to a button press.
-   *
-   * <p>This approach is modeled after this ChiefDelphi post:
-   * https://www.chiefdelphi.com/t/enums-and-subsytem-states/463974/6
-   */
-  private enum State {
-    WAITING_FOR_GAME_PIECE {
-      @Override
-      void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(
-            Volts.of(subsystem.manipulatorCollectionVoltage.get()));
-      }
-    },
 
-    CENTERING_CORAL_LEFT {
-      @Override
-      void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(
-            Volts.of(subsystem.manipulatorCollectionVoltage.get()));
-      }
-
-      @Override
-      void execute(Manipulator subsystem) {
-
-        LEDs.getInstance().requestState(States.CENTERING_CORAL_LEFT);
-
-        // Check if the coral is centered in the funnel
-        if (subsystem.isManipulatorIRBlocked()) {
-          subsystem.setState(State.GAME_PIECE_IN_MANIPULATOR);
+    // 3061 example subsystem with a lot of errors
+    private enum State {
+      WAITING_FOR_L1_CORAL_IN_FUNNEL
+      {
+        @Override
+        void onEnter(Manipulator subsystem) 
+        {
+          subsystem.setFunnelMotorVoltage(subsystem.funnelCollectionVoltage.get());
+          subsystem.setIndexerMotorVoltage(subsystem.indexerCollectionVoltage.get());
+          subsystem.readyToScore = false;
         }
-        // Timeout or other conditions can be added here if centering fails
-      }
-
-      @Override
-      void onExit(Manipulator subsystem) {
-        // Stop the motor after centering
-        subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
-      }
-    },
-
-    INDEXING_GAME_PIECE_IN_MANIPULATOR {
-      @Override
-      void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(
-            Volts.of(subsystem.manipulatorCollectionVoltage.get()));
-
-        // If a state has a timeout, the timer must be restarted in the onEnter method.
-        subsystem.inIndexingState.restart();
-
-        // If a state has a filter, the filter must be reset in the onEnter method.
-        subsystem.currentInAmps.reset();
-      }
-
-      @Override
-      void execute(Manipulator subsystem) {
-
-        LEDs.getInstance().requestState(States.INDEXING_GAME_PIECE);
-
-        // check if the game piece has stalled against the hard stop
-        if (subsystem.isManipulatorIRBlocked()
-            && subsystem.currentInAmps.lastValue() > COLLECTION_CURRENT_SPIKE_THRESHOLD) {
-          subsystem.setState(State.GAME_PIECE_IN_MANIPULATOR);
+  
+        @Override
+        void execute(Manipulator subsystem) {
+  
+          LEDs.getInstance().requestState(States.WAITING_FOR_CORAL);
+          subsystem.retractPivot();
+  
+          if (subsystem.disableFunnelForClimb) {
+            subsystem.setFunnelMotorVoltage(0.0);
+            subsystem.disableFunnelForClimb =
+                false; // set to false so we don't periodically request 0 voltage
+          }
+  
+          if (subsystem.inputs.isFunnelIRBlocked) {
+            subsystem.setState(State.INDEXING_CORAL_IN_MANIPULATOR);
+          } else if (DriverStation.isDisabled() && subsystem.inputs.isIndexerIRBlocked) {
+            subsystem.setState(State.CORAL_IN_MANIPULATOR);
+          } else if (subsystem.inputs.isIndexerIRBlocked) {
+            subsystem.setState(State.INDEXING_CORAL_IN_MANIPULATOR);
+          } else if (subsystem.intakeAlgaeButtonPressed) {
+            subsystem.setState(State.WAITING_FOR_ALGAE);
+          } else if (subsystem.inputs.isAlgaeIRBlocked) {
+            subsystem.setState(State.ALGAE_IN_MANIPULATOR);
+          }
         }
-        // check if the timeout has elapsed which indicates that the game piece may be stuck
-        else if (subsystem.inIndexingState.hasElapsed(COLLECTION_TIME_OUT)) {
-          subsystem.setState(GAME_PIECE_STUCK);
+  
+        @Override
+        void onExit(Manipulator subsystem) {}
+      },
+      INDEXING_CORAL_IN_MANIPULATOR 
+      {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setFunnelMotorVoltage(subsystem.funnelCollectionVoltage.get());
+          subsystem.setIndexerMotorVoltage(subsystem.indexerCollectionVoltage.get());
+          subsystem.coralInIndexingState.restart(); // start timer
+          subsystem.currentInAmps
+              .reset(); // reset the linear filter thats used to detect a current spike
         }
-      }
-
-      @Override
-      void onExit(Manipulator subsystem) {}
-    },
-
-    GAME_PIECE_STUCK {
-      @Override
-      void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(Volts.of(subsystem.manipulatorEjectVoltage.get()));
-
-        // If a state has a timeout, the timer must be restarted in the onEnter method.
-        subsystem.ejectingTimer.restart();
-      }
-
-      @Override
-      void execute(Manipulator subsystem) {
-        LEDs.getInstance().requestState(States.EJECTING_GAME_PIECE);
-
-        // wait for the specified duration before transitioning back to the waiting for game piece
-        // state to ensure that the game piece has been ejected
-        if (subsystem.ejectingTimer.hasElapsed(EJECT_DURATION_SECONDS)) {
-          subsystem.setState(State.WAITING_FOR_GAME_PIECE);
+  
+        @Override
+        void execute(Manipulator subsystem) {
+  
+          LEDs.getInstance().requestState(States.INDEXING_CORAL);
+          subsystem.retractPivot();
+  
+          if (subsystem.inputs.isIndexerIRBlocked
+              && subsystem.currentInAmps.lastValue()
+                  > CORAL_CURRENT_SPIKE_THRESHOLD) // the currentInAmps filters out the current in
+          // the
+          // noise and getting the lastValue gets the last value
+          // of the current, and if that last value is greater
+          // than some constant, then current spike has been
+          // detected
+          {
+            subsystem.setState(State.CORAL_IN_MANIPULATOR);
+          } else if (subsystem.coralInIndexingState.hasElapsed(
+              CORAL_COLLECTION_TIME_OUT)) // hasElapsed method check if the timer has elapsed a
+          // certain number of seconds
+          {
+            subsystem.setState(CORAL_STUCK);
+          }
         }
-      }
-
-      @Override
-      void onExit(Manipulator subsystem) {}
-    },
-
-    GAME_PIECE_IN_MANIPULATOR {
-      @Override
-      void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
-      }
-
-      @Override
-      void execute(Manipulator subsystem) {
-        LEDs.getInstance().requestState(States.HAS_GAME_PIECE);
-
-        // check if the release button has been pressed
-        if (subsystem.releaseButtonPressed) {
-          subsystem.setState(State.RELEASE_GAME_PIECE);
-          subsystem.releaseButtonPressed = false;
+  
+        @Override
+        void onExit(Manipulator subsystem) {}
+      },
+      CORAL_STUCK {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setFunnelMotorVoltage(
+              subsystem.funnelEjectingVoltage.get()); // set negative velocity to funnel motor to
+          // invert it
+          subsystem.setIndexerMotorVoltage(
+              subsystem.indexerEjectingVoltage.get()); // set negative velocity to indexer motor
+          // to invert it
+          subsystem.ejectingCoralTimer.restart();
         }
-        // check if the game piece is no longer detected by the manipulator; this could occur if
-        // it has dropped or knocked out; we don't want to be stuck in this state
-        else if (!subsystem.isManipulatorIRBlocked()) {
-          subsystem.setState(State.WAITING_FOR_GAME_PIECE);
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.EJECTING_CORAL);
+          subsystem.retractPivot();
+  
+          if (subsystem.inputs.isIndexerIRBlocked) {
+            subsystem.setState(State.CORAL_IN_MANIPULATOR);
+          } else if (!subsystem.inputs.isFunnelIRBlocked
+              && !subsystem.inputs.isIndexerIRBlocked
+              && subsystem.ejectingCoralTimer.hasElapsed(FINAL_EJECT_CORAL_DURATION_SECONDS)) {
+            subsystem.setState(State.WAITING_FOR_CORAL);
+          } else if (subsystem.ejectingCoralTimer.hasElapsed(SECOND_INTAKE_CORAL_SECONDS)) {
+            subsystem.setFunnelMotorVoltage(subsystem.funnelEjectingVoltage.get());
+            subsystem.setIndexerMotorVoltage(subsystem.indexerEjectingVoltage.get());
+          } else if (subsystem.ejectingCoralTimer.hasElapsed(FIRST_EJECT_CORAL_SECONDS)) {
+            subsystem.setFunnelMotorVoltage(subsystem.funnelCollectionVoltage.get());
+            subsystem.setIndexerMotorVoltage(subsystem.indexerCollectionVoltage.get());
+          }
         }
-      }
-
-      @Override
-      void onExit(Manipulator subsystem) {}
-    },
-
-    RELEASE_GAME_PIECE {
-      @Override
-      void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(Volts.of(subsystem.manipulatorReleaseVoltage.get()));
-      }
-
-      @Override
-      void execute(Manipulator subsystem) {
-        LEDs.getInstance().requestState(States.RELEASING_GAME_PIECE);
-
-        // wait until the game piece is no longer detected by the manipulator before transitioning
-        // back to the waiting for game piece state
-        if (!subsystem.isManipulatorIRBlocked()) {
-          subsystem.setState(State.WAITING_FOR_GAME_PIECE);
+  
+        @Override
+        void onExit(Manipulator subsystem) {}
+      },
+      CORAL_IN_MANIPULATOR {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setFunnelMotorVoltage(0.0);
+          subsystem.zeroIndexerPosition();
+          subsystem.targetIndexerPosition = 0.0;
+          subsystem.shootCoralButtonPressed = false;
+          subsystem.coralInManipulatorFirstRun = true;
         }
-      }
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.HAS_CORAL);
+          subsystem.retractPivot();
+  
+          if (DriverStation.isDisabled()) {
+            subsystem.targetIndexerPosition = subsystem.inputs.indexerPositionRotations;
+          }
+  
+          if (subsystem.coralInManipulatorFirstRun) {
+            subsystem.coralInManipulatorFirstRun = false;
+          } else {
+            subsystem.holdWheelPosition(subsystem.targetIndexerPosition);
+          }
+  
+          Logger.recordOutput(
+              SUBSYSTEM_NAME + "/targetWheelPosition", subsystem.targetIndexerPosition);
+  
+          if (subsystem.shootCoralButtonPressed) {
+            subsystem.setState(State.SHOOT_CORAL);
+            subsystem.shootCoralButtonPressed = false;
+          } else if (!subsystem.inputs.isIndexerIRBlocked) {
+            subsystem.setState(State.WAITING_FOR_CORAL);
+          }
+        }
+  
+        @Override
+        void onExit(Manipulator subsystem) {
+          /*NO-OP */
+        }
+      },
+      SHOOT_CORAL {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.readyToScore = false;
+  
+          if (subsystem.shootingFast) {
+            if (OISelector.getOperatorInterface().getLevel2Trigger().getAsBoolean()
+                || OISelector.getOperatorInterface().getLevel3Trigger().getAsBoolean()) {
+              subsystem.setIndexerMotorVoltage(subsystem.slowShootingVoltage.get());
+            } else {
+              subsystem.setIndexerMotorVoltage(subsystem.fastShootingVoltage.get());
+            }
+          } else {
+            subsystem.setIndexerMotorVoltage(subsystem.fastShootingVoltage.get());
+          }
+        }
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.SCORING);
+          subsystem.retractPivot();
+  
+          if (!subsystem.inputs.isFunnelIRBlocked && !subsystem.inputs.isIndexerIRBlocked) {
+            subsystem.setState(State.WAITING_FOR_CORAL);
+          }
+        }
+  
+        @Override
+        void onExit(Manipulator subsystem) {}
+      },
+      WAITING_FOR_ALGAE {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setPivotMotorCurrent(PIVOT_EXTEND_CURRENT);
+          subsystem.setFunnelMotorVoltage(0.0);
+          subsystem.setIndexerMotorVoltage(INDEXER_COLLECT_ALGAE_VOLTAGE);
+          subsystem.intakingAlgaeTimer.restart();
+          subsystem.currentInAmps.reset();
+        }
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.COLLECTING_ALGAE);
+  
+          // check for current spike or if algae IR has detected algae
+          if (subsystem.inputs.isAlgaeIRBlocked
+              && subsystem.currentInAmps.lastValue() > ALGAE_CURRENT_SPIKE_THRESHOLD) {
+            subsystem.setState(State.ALGAE_IN_MANIPULATOR);
+          } else if (subsystem.intakingAlgaeTimer.hasElapsed(INTAKE_ALGAE_TIMEOUT)) {
+            subsystem.setState(State.WAITING_FOR_CORAL);
+          }
+        }
+  
+        @Override
+        void onExit(Manipulator subsystem) {
+          // set the boolean that controls if algae intake button has been pressed to false
+          subsystem.intakeAlgaeButtonPressed = false;
+        }
+      },
+  
+      ALGAE_IN_MANIPULATOR {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setPivotMotorCurrent(0.0);
+          subsystem.setFunnelMotorVoltage(0.0);
+          subsystem.setIndexerMotorCurrent(subsystem.indexerHoldAlgaeCurrent.get());
+        }
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.HAS_ALGAE);
+  
+          // check if the shootAlgae button has been pressed, if so then switch to the SHOOT_ALGAE
+          // state
+          if (subsystem.scoreAlgaeInBargeButtonPressed) {
+            subsystem.setState(State.SHOOT_ALGAE_IN_BARGE);
+          } else if (subsystem.scoreAlgaeInProcessorButtonPressed) {
+            subsystem.setState(State.SHOOT_ALGAE_IN_PROCESSOR);
+          } else if (subsystem.dropAlgaeButtonPressed) {
+            subsystem.setState(State.DROP_ALGAE);
+          } else if (!subsystem.inputs.isAlgaeIRBlocked) {
+            subsystem.setState(State.WAITING_FOR_CORAL);
+          }
+        }
+  
+        @Override
+        void onExit(Manipulator subsystem) {}
+      },
+      SHOOT_ALGAE_IN_BARGE { // state robot is in while algae is being shot out of the manipulator
+        @Override
+        void onEnter(Manipulator subsystem) {
+          // set the indexer/roller motor to a negative voltage in order for the rollers to move the
+          // opp direction and eject the algae out of the manipulator
+  
+          subsystem.setFunnelMotorVoltage(0.0);
+          subsystem.setIndexerMotorCurrent(INDEXER_SHOOT_ALGAE_BARGE_CURRENT);
+          subsystem.scoreAlgaeInBargeButtonPressed = false;
+          subsystem.setPivotMotorCurrent(0.0);
+  
+          subsystem.scoringAlgaeTimer.restart();
+        }
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.SCORING);
+  
+          if (!subsystem.inputs.isAlgaeIRBlocked
+              && subsystem.scoringAlgaeTimer.hasElapsed(BARGE_ALGAE_TIMEOUT)) {
+            subsystem.setState(State.WAITING_FOR_CORAL);
+          }
+        }
+  
+        @Override
+        void onExit(Manipulator subsystem) {}
+      },
+      SHOOT_ALGAE_IN_PROCESSOR {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.SCORING);
+  
+          subsystem.setFunnelMotorVoltage(0.0);
+          subsystem.setIndexerMotorCurrent(INDEXER_SHOOT_ALGAE_PROCESSOR_CURRENT);
+          subsystem.scoreAlgaeInBargeButtonPressed = false;
+          subsystem.scoreAlgaeInProcessorButtonPressed = false;
+          subsystem.setPivotMotorCurrent(0.0);
+  
+          subsystem.scoringAlgaeTimer.restart();
+        }
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          if (!subsystem.inputs.isAlgaeIRBlocked
+              && subsystem.scoringAlgaeTimer.hasElapsed(PROCESSOR_ALGAE_TIMEOUT)) {
+            subsystem.setState(State.WAITING_FOR_CORAL);
+          }
+        }
+  
+        @Override
+        void onExit(Manipulator subsystem) {}
+      },
+      DROP_ALGAE {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setFunnelMotorVoltage(0.0);
+          subsystem.setIndexerMotorCurrent(INDEXER_DROP_ALGAE_CURRENT);
+          subsystem.dropAlgaeButtonPressed = false;
+          subsystem.setPivotMotorCurrent(0.0);
+  
+          subsystem.scoringAlgaeTimer.restart();
+        }
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          if (!subsystem.inputs.isAlgaeIRBlocked
+              && subsystem.scoringAlgaeTimer.hasElapsed(DROP_ALGAE_TIMEOUT)) {
+            subsystem.setState(State.WAITING_FOR_CORAL);
+          }
+        }
+  
+        @Override
+        void onExit(Manipulator subsystem) {}
+      },
+  
+      UNINITIALIZED {
+  
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setFunnelMotorVoltage(0);
+          subsystem.setIndexerMotorVoltage(0);
+          subsystem.setPivotMotorCurrent(0);
+        }
+  
+        @Override
+        void execute(Manipulator subsystem) {
+          subsystem.setState(
+              State.WAITING_FOR_CORAL); // default state to WAITING_FOR_CORAL_IN_FUNNEL state
+        }
+  
+        @Override
+        void onExit(Manipulator subsystem) {
+          /*NO-OP */
+        }
 
-      @Override
-      void onExit(Manipulator subsystem) {}
-    },
+        // io methods
+        public
 
-    UNINITIALIZED {
-      @Override
-      void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
-      }
 
-      @Override
-      void execute(Manipulator subsystem) {
-        subsystem.setState(
-            State.WAITING_FOR_GAME_PIECE); // default state to WAITING_FOR_CORAL_IN_FUNNEL state
-      }
-
-      @Override
-      void onExit(Manipulator subsystem) {}
-    };
-
-    abstract void execute(Manipulator subsystem);
-
-    abstract void onEnter(Manipulator subsystem);
-
-    abstract void onExit(Manipulator subsystem);
-  }
-
-  @Override
-  public void periodic() {
-    // the first step in periodic is to update the inputs from the IO implementation.
-    io.updateInputs(inputs);
-
-    // the next step is to log the inputs to the AdvantageKit logger.
-    Logger.processInputs("Manipulator", inputs);
-
-    // Subsystems may need to log additional information that is not part of the inputs. This is
-    // done for convenience as additional values can always be logged when replaying a log file.
-    // Logging the state is very useful.
-    Logger.recordOutput(SUBSYSTEM_NAME + "/State", this.state);
-
-    // If a filter is used, it must be updated every periodic call.
-    currentInAmps.calculate(inputs.manipulatorStatorCurrentAmps);
-
-    // If the testing mode is enabled, apply the specified voltage (if not zero). Only run the state
-    // machine if testing mode is not enabled. Otherwise, the state machine will "fight" the
-    // specified testing value. Similarly, if testing the mechanism using Phoenix Tuner, enable
-    // testing mode to ensure that the state machine won't "fight" Phoenix Tuner.
-    if (testingMode.get() == 1) {
-      if (manipulatorMotorVoltage.get() != 0) {
-        setManipulatorMotorVoltage(Volts.of(manipulatorMotorVoltage.get()));
-      }
-    } else {
-      runStateMachine();
-    }
-
-    // Log how long this subsystem takes to execute its periodic method.
-    // This is useful for debugging performance issues.
-    LoggedTracer.record("Manipulator");
-  }
-
-  public void resetStateMachine() {
-    this.state = State.WAITING_FOR_GAME_PIECE;
-  }
-
-  public void releaseGamePiece() {
-    releaseButtonPressed = true;
-  }
-
-  public boolean isIndexingGamePiece() {
-    return state == State.INDEXING_GAME_PIECE_IN_MANIPULATOR;
-  }
-
-  public boolean hasIndexedGamePiece() {
-    return state == State.GAME_PIECE_IN_MANIPULATOR;
-  }
-
-  private void setState(State state) {
-    this.state = state;
-  }
-
-  private void runStateMachine() {
-    if (state != lastState) {
-      lastState.onExit(this);
-      lastState = state;
-      state.onEnter(this);
-    }
-
-    state.execute(this);
-  }
-
-  private void setManipulatorMotorVoltage(Voltage volts) {
-    io.setManipulatorVoltage(volts);
-  }
-
-  // The inputs class contains the state of the primary and secondary IR sensors. It is useful to
-  // have both logged when checking for sensor reliability across matches. Which sensors are used
-  // are determined based on the dashboard button.
-  private boolean isManipulatorIRBlocked() {
-    if (OISelector.getOperatorInterface().getEnablePrimaryIRSensorsTrigger().getAsBoolean()) {
-      return inputs.isManipulatorPrimaryIRBlocked;
-    } else {
-      return inputs.isManipulatorSecondaryIRBlocked;
-    }
-  }
-
-  // A subsystem's system check command is used to verify the functionality of the subsystem. It
-  // should perform a sequence of commands (usually encapsulated in another method). The command
-  // should always be decorated with an `until` condition that checks for faults in the subsystem
-  // and an `andThen` condition that sets the subsystem to a safe state. This ensures that if any
-  // faults are detected, the test will stop and the subsystem is always left in a safe state.
-  private Command getSystemCheckCommand() {
-    return Commands.sequence(
-            Commands.runOnce(() -> io.setManipulatorVoltage(Volts.of(3.6))),
-            Commands.waitSeconds(1.0),
-            Commands.runOnce(
-                () -> {
-                  if (inputs.manipulatorVelocityRPS < 2.0) {
-                    FaultReporter.getInstance()
-                        .addFault(
-                            SUBSYSTEM_NAME,
-                            "[System Check] Manipulator motor not moving as fast as expected",
-                            false);
-                  }
-                }),
-            Commands.runOnce(() -> io.setManipulatorVoltage(Volts.of(-2.4))),
-            Commands.waitSeconds(1.0),
-            Commands.runOnce(
-                () -> {
-                  if (inputs.manipulatorVelocityRPS > -2.0) {
-                    FaultReporter.getInstance()
-                        .addFault(
-                            SUBSYSTEM_NAME,
-                            "[System Check] Manipulator motor moving too slow or in the wrong direction",
-                            false);
-                  }
-                }))
-        .until(() -> !FaultReporter.getInstance().getFaults(SUBSYSTEM_NAME).isEmpty())
-        .andThen(Commands.runOnce(() -> io.setManipulatorVoltage(Volts.of(0.0))));
-  }
+      };
+  
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
