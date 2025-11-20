@@ -31,11 +31,9 @@ public class PivotIOTalonFX implements PivotIO {
   private TalonFX followerPivotMotorOppositeSide;
   private TalonFX followerPivotMotorOppositeSide2;
 
-  // We usually use MotionMagic Expo voltage to control the position of a mechanism.
   private MotionMagicExpoVoltage pivotLeadMotorPositionRequest;
   private VoltageOut pivotLeadMotorVoltageRequest;
 
-  // Creating status signals for each motor
   private StatusSignal<Voltage> voltageSuppliedLead;
   private StatusSignal<Voltage> voltageSuppliedFollowerSameSide;
   private StatusSignal<Voltage> voltageSuppliedFollowerOppositeSide;
@@ -76,8 +74,7 @@ public class PivotIOTalonFX implements PivotIO {
   private Alert configAlertFollowerOppositeSide2 =
       new Alert("Failed to apply configuration for pivot follower 3", AlertType.kError);
 
-  // The following enables tuning of the PID and feedforward values for the arm by changing values
-  // via AdvantageScope and not needing to change values in code, compile, and re-deploy.
+
   private final LoggedTunableNumber kG =
       new LoggedTunableNumber("Pivot/PIVOT_KG", PivotConstants.PIVOT_KG);
   private final LoggedTunableNumber kS =
@@ -173,8 +170,6 @@ public class PivotIOTalonFX implements PivotIO {
 
   @Override
   public void updateInputs(PivotIOInputs inputs) {
-    // Determine if motors are still connected (reachable on CAN bus). If they are not they return
-    // an error.
     inputs.leadMotorConnected =
         connectedLeadDebouncer.calculate(
             BaseStatusSignal.isAllGood(
@@ -218,19 +213,11 @@ public class PivotIOTalonFX implements PivotIO {
 
     inputs.angleDegrees = pivotAngleDegrees.getValueAsDouble();
 
-    // Retrieve the closed loop reference status signals directly from the motor in this method
-    // instead of retrieving in advance because the status signal returned depends on the current
-    // control mode. To eliminate the performance hit, only retrieve the closed loop reference
-    // signals if the tuning mode is enabled. It is critical that these input values are only used
-    // for tuning and not used elsewhere in the subsystem.
     if (Constants.TUNING_MODE) {
       inputs.closedLoopError = leadPivotMotor.getClosedLoopError().getValueAsDouble();
       inputs.closedLoopReference = leadPivotMotor.getClosedLoopReference().getValueAsDouble();
     }
-
-    // In order for a tunable to be useful, there must be code that checks if its value has changed.
-    // When a subsystem has multiple tunables that are related, the ifChanged method is a convenient
-    // to check and apply changes from multiple tunables at once.
+    
     LoggedTunableNumber.ifChanged(
         hashCode(),
         motionMagic -> {
