@@ -16,38 +16,38 @@ public interface PivotIO {
 
     // voltage
     double leadvoltageSupplied = 0.0;
-    double follower1VoltageSupplied = 0.0;
-    double follower2VoltageSupplied = 0.0;
-    double follower3VoltageSupplied = 0.0;
+    double followerSameSideVoltageSupplied = 0.0;
+    double followerOppositeSideVoltageSupplied = 0.0;
+    double followerOppositeSide2VoltageSupplied = 0.0;
 
     // stator
     double leadstatorCurrentAmps = 0.0;
-    double follower1StatorCurrentAmps = 0.0;
-    double follower2StatorCurrentAmps = 0.0;
-    double follower3StatorCurrentAmps = 0.0;
+    double followerSameSideStatorCurrentAmps = 0.0;
+    double followerOppositeSideStatorCurrentAmps = 0.0;
+    double followerOppositeSide2StatorCurrentAmps = 0.0;
 
     // supply
     double leadsupplyCurrentAmps = 0.0;
-    double follower1SupplyCurrentAmps = 0.0;
-    double follower2SupplyCurrentAmps = 0.0;
-    double follower3SupplyCurrentAmps = 0.0;
+    double followerSameSideSupplyCurrentAmps = 0.0;
+    double followerOppositeSideSupplyCurrentAmps = 0.0;
+    double followerOppositeSide2SupplyCurrentAmps = 0.0;
 
     double closedLoopError = 0.0;
     double closedLoopReference = 0.0;
 
     // temperature
     double leadTempCelsius = 0.0;
-    double follower1TempCelsius = 0.0;
-    double follower2TempCelsius = 0.0;
-    double follower3TempCelsius = 0.0;
+    double followerSameSideTempCelsius = 0.0;
+    double followerOppositeSideTempCelsius = 0.0;
+    double followerOppositeSide2TempCelsius = 0.0;
     double angleDegrees = 0.0;
 
     // connections
 
     boolean leadMotorConnected = false;
-    boolean follower1MotorConnected = false;
-    boolean follower2MotorConnected = false;
-    boolean follower3MotorConnected = false;
+    boolean followerSameSideMotorConnected = false;
+    boolean followerOppositeSideMotorConnected = false;
+    boolean followerOppositeSide2MotorConnected = false;
   }
 
   public default void setVoltage(double voltage) {}
