@@ -53,7 +53,7 @@ public class Pivot extends SubsystemBase {
   private final LoggedTunableNumber pivotAngleDegrees =
       new LoggedTunableNumber("Pivot/AngleDegrees", LOWER_ANGLE_LIMIT);
 
-  private final Debouncer atSetpointDebouncer = new Debouncer(0.1);
+  //private final Debouncer atSetpointDebouncer = new Debouncer(0.1);
 
   // The SysId routine is used to characterize the mechanism. The ramp rate and step voltage
   // specified in the configuration often needs to be adjusted based on the physical mechanism

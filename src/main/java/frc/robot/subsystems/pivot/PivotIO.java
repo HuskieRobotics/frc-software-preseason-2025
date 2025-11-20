@@ -15,19 +15,19 @@ public interface PivotIO {
   public static class PivotIOInputs {
 
     // voltage
-    double leadvoltageSupplied = 0.0;
+    double leadVoltageSupplied = 0.0;
     double followerSameSideVoltageSupplied = 0.0;
     double followerOppositeSideVoltageSupplied = 0.0;
     double followerOppositeSide2VoltageSupplied = 0.0;
 
     // stator
-    double leadstatorCurrentAmps = 0.0;
+    double leadStatorCurrentAmps = 0.0;
     double followerSameSideStatorCurrentAmps = 0.0;
     double followerOppositeSideStatorCurrentAmps = 0.0;
     double followerOppositeSide2StatorCurrentAmps = 0.0;
 
     // supply
-    double leadsupplyCurrentAmps = 0.0;
+    double leadSupplyCurrentAmps = 0.0;
     double followerSameSideSupplyCurrentAmps = 0.0;
     double followerOppositeSideSupplyCurrentAmps = 0.0;
     double followerOppositeSide2SupplyCurrentAmps = 0.0;
