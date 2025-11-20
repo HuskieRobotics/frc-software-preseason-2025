@@ -8,7 +8,6 @@ import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.lib.team3015.subsystem.FaultReporter;
 import frc.lib.team3061.util.SysIdRoutineChooser;
 import frc.lib.team6328.util.LoggedTracer;
 import frc.lib.team6328.util.LoggedTunableNumber;
@@ -78,7 +77,7 @@ public class Pivot extends SubsystemBase {
 
     // Register this subsystem's system check command with the fault reporter. The system check
     // command can be added to the Elastic Dashboard to execute the system test.
-    //FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getSystemCheckCommand());
+    // FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getSystemCheckCommand());
   }
 
   @Override
@@ -112,6 +111,6 @@ public class Pivot extends SubsystemBase {
   }
 
   public Angle getPositionAngle() {
-    return Angle.of(inputs.angleDegrees);
+    return Degrees.of(inputs.angleDegrees); // FIXME: We think we fixed this but not sure yet
   }
 }

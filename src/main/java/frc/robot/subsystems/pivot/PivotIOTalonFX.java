@@ -9,7 +9,6 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicExpoVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
-import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -32,7 +31,6 @@ public class PivotIOTalonFX implements PivotIO {
   private TalonFX followerPivotMotorSameSide;
   private TalonFX followerPivotMotorOppositeSide;
   private TalonFX followerPivotMotorOppositeSide2;
-
 
   // We usually use MotionMagic Expo voltage to control the position of a mechanism.
   private MotionMagicExpoVoltage pivotLeadMotorPositionRequest;
