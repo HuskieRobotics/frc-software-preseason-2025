@@ -15,7 +15,7 @@ public class PivotConstants {
 
   public static final boolean PIVOT_MOTOR_INVERTED = false;
 
-  public static final double LOWER_ANGLE_LIMIT = -90; // FIXME: Update value
+  public static final double LOWER_ANGLE_LIMIT = 0; // FIXME: Update value
   public static final double UPPER_ANGLE_LIMIT = 90; // FIXME: Update value
   public static final double ANGLE_MOTOR_PEAK_CURRENT_LIMIT = 40; // FIXME: Update value
   public static final double ANGLE_MOTOR_CONTINUOUS_CURRENT_LIMIT = 30; // FIXME: Update value
@@ -41,7 +41,7 @@ public class PivotConstants {
 
   public static final double ROTATION_ENCODER_MAGNET_OFFSET = 0; // FIXME: Update value
 
-  public static final double PIVOT_MASS_KG = 0; // FIXME: Change to pivot mass later
+  public static final double PIVOT_MASS_KG = 15.685; 
 
-  public static final double PIVOT_LENGTH = 0; // FIXME: Update value to actual pivot length later
+  public static final double PIVOT_LENGTH = 6.7; 
 }
