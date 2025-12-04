@@ -16,18 +16,12 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
-import com.revrobotics.spark.config.SoftLimitConfig;
-
-import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Alert;
-import edu.wpi.first.wpilibj.CAN;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import frc.lib.team254.Phoenix6Util;
 import frc.lib.team3015.subsystem.FaultReporter;
@@ -43,7 +37,6 @@ public class PivotIOTalonFX implements PivotIO {
   private TalonFX followerPivotMotorOppositeSide;
   private TalonFX followerPivotMotorOppositeSide2;
   private CANcoder pivotEncoder;
-
 
   private MotionMagicExpoVoltage pivotLeadMotorPositionRequest;
   private VoltageOut pivotLeadMotorVoltageRequest;
@@ -109,12 +102,16 @@ public class PivotIOTalonFX implements PivotIO {
   private final LoggedTunableNumber encoderOffset =
       new LoggedTunableNumber(
           "Pivot/ROTATION_ENCODER_MAGNET_OFFSET", PivotConstants.ROTATION_ENCODER_MAGNET_OFFSET);
+
   public PivotIOTalonFX() {
-    
+
     leadPivotMotor = new TalonFX(PIVOT_LEAD_MOTOR_ID, RobotConfig.getInstance().getCANBusName());
-    followerPivotMotorSameSide = new TalonFX(PIVOT_FOLLOWER_SAME_SIDE_ID, RobotConfig.getInstance().getCANBusName());
-    followerPivotMotorOppositeSide = new TalonFX(PIVOT_FOLLOWER_OPPOSITE_SIDE_ID, RobotConfig.getInstance().getCANBusName());
-    followerPivotMotorOppositeSide2 = new TalonFX(PIVOT_FOLLOWER_OPPOSITE_SIDE_ID_2, RobotConfig.getInstance().getCANBusName());
+    followerPivotMotorSameSide =
+        new TalonFX(PIVOT_FOLLOWER_SAME_SIDE_ID, RobotConfig.getInstance().getCANBusName());
+    followerPivotMotorOppositeSide =
+        new TalonFX(PIVOT_FOLLOWER_OPPOSITE_SIDE_ID, RobotConfig.getInstance().getCANBusName());
+    followerPivotMotorOppositeSide2 =
+        new TalonFX(PIVOT_FOLLOWER_OPPOSITE_SIDE_ID_2, RobotConfig.getInstance().getCANBusName());
 
     pivotEncoder = new CANcoder(PIVOT_ENCODER_ID, RobotConfig.getInstance().getCANBusName());
 
@@ -168,7 +165,6 @@ public class PivotIOTalonFX implements PivotIO {
     configPivotMotorFollowerSameSide(followerPivotMotorSameSide);
     configPivotMotorFollowerOppositeSide(followerPivotMotorOppositeSide);
     configPivotMotorFollowerOppositeSide2(followerPivotMotorOppositeSide2);
-
 
     followerPivotMotorSameSide.setControl(new Follower(leadPivotMotor.getDeviceID(), false));
     followerPivotMotorOppositeSide.setControl(new Follower(leadPivotMotor.getDeviceID(), true));
@@ -296,11 +292,12 @@ public class PivotIOTalonFX implements PivotIO {
     TalonFXConfiguration config = new TalonFXConfiguration();
 
     CANcoderConfiguration canCoderConfig = new CANcoderConfiguration();
-    canCoderConfig.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 0.0; 
-    canCoderConfig.MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive; //FIXME: Double check-Clockwise or counterclockwise
-    canCoderConfig.MagnetSensor.MagnetOffset = pivotEncoder.getPosition().getValueAsDouble(); 
+    canCoderConfig.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 0.0;
+    canCoderConfig.MagnetSensor.SensorDirection =
+        SensorDirectionValue
+            .Clockwise_Positive; // FIXME: Double check-Clockwise or counterclockwise
+    canCoderConfig.MagnetSensor.MagnetOffset = pivotEncoder.getPosition().getValueAsDouble();
 
-    
     config.CurrentLimits.SupplyCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLowerLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLowerTime =
@@ -328,7 +325,6 @@ public class PivotIOTalonFX implements PivotIO {
     config.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
     config.Feedback.SensorToMechanismRatio = PivotConstants.SENSOR_TO_MECHANISM_RATIO;
     config.Feedback.RotorToSensorRatio = PivotConstants.ANGLE_MOTOR_GEAR_RATIO;
-    
 
     Phoenix6Util.applyAndCheckConfiguration(motor, config, configAlertLead);
     Phoenix6Util.applyAndCheckConfiguration(encoder, canCoderConfig, configAlertLead);

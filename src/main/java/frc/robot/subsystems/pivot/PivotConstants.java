@@ -41,7 +41,7 @@ public class PivotConstants {
 
   public static final double ROTATION_ENCODER_MAGNET_OFFSET = 0; // FIXME: Update value
 
-  public static final double PIVOT_MASS_KG = 15.685; 
+  public static final double PIVOT_MASS_KG = 15.685;
 
-  public static final double PIVOT_LENGTH = 6.7; 
+  public static final double PIVOT_LENGTH = 6.7;
 }
