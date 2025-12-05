@@ -1,3 +1,5 @@
+// copied 3061-lib code
+
 package frc.robot.subsystems.manipulator;
 
 import static edu.wpi.first.units.Units.*;
@@ -8,6 +10,7 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
@@ -20,52 +23,96 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DigitalInput; // imported this class for the sensors
 import frc.lib.team254.Phoenix6Util;
 import frc.lib.team3015.subsystem.FaultReporter;
+import frc.lib.team3061.RobotConfig;
 
 public class ManipulatorIOTalonFX implements ManipulatorIO {
   // This mechanism has no close loop control; we just set the voltage directly.
   private VoltageOut indexerVoltageRequest;
 
-  private TalonFX manipulatorMotor;
-  private DigitalInput manipulatorIRSensor;
-  private DigitalInput backupManipulatorIRSensor;
+  private TalonFX leftCoralMotor;
+  private TalonFX rightCoralMotor;
+  private TalonFX algaeMotor;
+
+  private VoltageOut leftVoltageRequest;
+  private VoltageOut rightVoltageRequest;
+  private VoltageOut algaeVoltageRequest;
+
+  private TorqueCurrentFOC leftCurrentRequest;
+  private TorqueCurrentFOC rightCurrentRequest;
+  private TorqueCurrentFOC algaeCurrentRequest;
 
   private Alert manipulatorConfigAlert =
       new Alert("Failed to apply configuration for manipulator.", AlertType.kError);
+  
+  //status signals for each motor
 
-  private StatusSignal<Current> manipulatorMotorStatorCurrent;
-  private StatusSignal<Current> manipulatorMotorSupplyCurrent;
-  private StatusSignal<Temperature> manipulatorMotorTemp;
-  private StatusSignal<Voltage> manipulatorMotorVoltage;
-  private StatusSignal<AngularVelocity> manipulatorMotorVelocity;
+  //stator
+  private StatusSignal<Current> leftCoralMotorStatorCurrentAmps;
+  private StatusSignal<Current> rightCoralMotorStatorCusrrentAmps;
+  private StatusSignal<Current> algaeMotorStatorCurrentAmp;
 
-  private final Debouncer manipulatorConnectedDebouncer = new Debouncer(0.5);
+  //supply
+  private StatusSignal<Current> leftCoralMotorSupplyCurrentAmps;
+  private StatusSignal<Current> rightCoralMotorSupplyCurrentAmps;
+  private StatusSignal<Current> algaeMotorSupplyCurrentAmps;
+  
+  //temp
+  private StatusSignal<Temperature> leftCoralMotorTemperature;
+  private StatusSignal<Temperature> rightCoralMotorTemperature;
+  private StatusSignal<Temperature> algaeMotorTemperature;
+
+  //voltage
+  private StatusSignal<Voltage> leftCoralMotorVoltage;
+  private StatusSignal<Voltage> rightCoralMotorVoltage;
+  private StatusSignal<Voltage> algaeMotorVoltage;
+
+
+  private final Debouncer leftCoralMotorDebouncer = new Debouncer(0.5, Debouncer.DebounceType.kBoth);
+  private final Debouncer rightCoralMotorDebouncer = new Debouncer(0.5, Debouncer.DebounceType.kBoth);
+  private final Debouncer algaeMotorDebouncer = new Debouncer(0.5, Debouncer.DebounceType.kBoth);
 
   public ManipulatorIOTalonFX() {
 
-    manipulatorMotor = new TalonFX(MANIPULATOR_MOTOR_ID);
-    manipulatorIRSensor = new DigitalInput(MANIPULATOR_IR_SENSOR_ID);
-    backupManipulatorIRSensor = new DigitalInput(MANIPULATOR_IR_BACKUP_SENSOR_ID);
+    leftCoralMotor = new TalonFX(MANIPULATOR_LEFT_MOTOR_ID, RobotConfig.getInstance().getCanBusName());
+    rightCoralMotor = new TalonFX(MANIPULATOR_RIGHT_MOTOR_ID);
+    algaeMotor = new TalonFX(MANIPULATOR_ALGAE_MOTOR_ID);
 
-    indexerVoltageRequest = new VoltageOut(0.0);
 
-    manipulatorMotorStatorCurrent = manipulatorMotor.getStatorCurrent();
-    manipulatorMotorSupplyCurrent = manipulatorMotor.getSupplyCurrent();
-    manipulatorMotorTemp = manipulatorMotor.getDeviceTemp();
-    manipulatorMotorVoltage = manipulatorMotor.getMotorVoltage();
-    manipulatorMotorVelocity = manipulatorMotor.getVelocity();
+    leftCurrentRequest = new TorqueCurrentFOC(0.0);
+    rightCurrentRequest = new TorqueCurrentFOC(0.0);
+    algaeCurrentRequest = new TorqueCurrentFOC(0.0);
+
+    leftVoltageRequest = new VoltageOut(0.0);
+    rightVoltageRequest = new VoltageOut(0.0);
+    algaeVoltageRequest = new VoltageOut(0.0);
+
+
+    leftCoralMotorVoltage = leftCoralMotor.getMotorVoltage();
+    rightCoralMotorVoltage = rightCoralMotor.getMotorVoltage();
+    algaeMotorVoltage = algaeMotor.getMotorVoltage();
+
 
     // To improve performance, subsystems register all their signals with Phoenix6Util. All signals
     // on the entire CAN bus will be refreshed at the same time by Phoenix6Util; so, there is no
     // need to refresh any StatusSignals in this class.
     Phoenix6Util.registerSignals(
         false,
-        manipulatorMotorStatorCurrent,
-        manipulatorMotorSupplyCurrent,
-        manipulatorMotorTemp,
-        manipulatorMotorVoltage,
-        manipulatorMotorVelocity);
+        leftCoralMotorStatorCurrentAmps,
+        rightCoralMotorStatorCusrrentAmps,
+        algaeMotorStatorCurrentAmp,
+        leftCoralMotorVoltage,
+        rightCoralMotorVoltage,
+        algaeMotorVoltage,
+        leftCoralMotorTemperature,
+        rightCoralMotorTemperature,
+        algaeMotorTemperature,
+        leftCoralMotorSupplyCurrentAmps,
+        rightCoralMotorSupplyCurrentAmps,
+        algaeMotorSupplyCurrentAmps
+        );
 
-    configManipulatorMotor(manipulatorMotor);
+    configLeftCoralMotor(leftCoralMotor);
+    configRightCoralMotor(rightCoralMotor);
   }
 
   /**
@@ -103,7 +150,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     this.manipulatorMotor.setControl(indexerVoltageRequest.withOutput(volts));
   }
 
-  private void configManipulatorMotor(TalonFX motor) {
+  private void configLeftCoralMotor(TalonFX motor) {
     TalonFXConfiguration config = new TalonFXConfiguration();
 
     config.CurrentLimits.SupplyCurrentLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
@@ -126,9 +173,14 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     // correct. If not, it will reattempt five times and eventually, generate an alert.
     Phoenix6Util.applyAndCheckConfiguration(motor, config, manipulatorConfigAlert);
 
+    
     // A subsystem needs to register each device with FaultReporter. FaultReporter will check
     // devices for faults periodically when the robot is disabled and generate alerts if any faults
     // are found.
     FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, "manipulator motor", motor);
+  }
+
+  private void configRightCoralMotor(TalonFX motor){
+
   }
 }

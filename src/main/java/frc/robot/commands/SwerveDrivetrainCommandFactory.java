@@ -74,7 +74,7 @@ public class SwerveDrivetrainCommandFactory {
     oi.getRotationSlowModeButton()
         .onTrue(
             Commands.runOnce(swerveDrivetrain::enableRotationSlowMode, swerveDrivetrain)
-                .withName("enable rotation slow mode"));
+                .withName("enable rotation slow mode"));
     oi.getRotationSlowModeButton()
         .onFalse(
             Commands.runOnce(swerveDrivetrain::disableRotationSlowMode, swerveDrivetrain)

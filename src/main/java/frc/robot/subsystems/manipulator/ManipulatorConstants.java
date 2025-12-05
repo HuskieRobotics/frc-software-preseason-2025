@@ -1,5 +1,10 @@
 package frc.robot.subsystems.manipulator;
 
+import static edu.wpi.first.units.Units.Degrees;
+
+import edu.wpi.first.units.measure.Angle;
+
+
 public class ManipulatorConstants {
 
   private static final String CONSTRUCTOR_EXCEPTION = "constant class";
@@ -9,6 +14,11 @@ public class ManipulatorConstants {
   }
 
   public static final String SUBSYSTEM_NAME = "Manipulator";
+
+  //ids
+  public static final int MANIPULATOR_LEFT_MOTOR_ID = 55;
+  public static final int MANIPULATOR_RIGHT_MOTOR_ID = 54;
+  public static final int MANIPULATOR_ALGAE_MOTOR_ID = 57;
 
   public static final int MANIPULATOR_MOTOR_ID = 56;
   public static final int MANIPULATOR_IR_SENSOR_ID = 0;
