@@ -51,26 +51,48 @@ public class Manipulator extends SubsystemBase {
   // mode and, for the manipulator, specifying voltage is convenient. This feature is also an
   // efficient approach when, for example, empirically tuning the voltage to optimize performance
   // when collecting a game piece.
+
+  // Coral Motor 1 (for blue and green wheels) Tunable Numbers
   private final LoggedTunableNumber testingMode =
       new LoggedTunableNumber("Manipulator/TestingMode", 0);
-  private final LoggedTunableNumber manipulatorMotorVoltage =
+  private final LoggedTunableNumber manipulatorCoralMotor1Voltage =
       new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
-  public final LoggedTunableNumber manipulatorCollectionVoltage =
+  public final LoggedTunableNumber manipulatorCoralMotor1CollectionVoltage =
       new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
-  public final LoggedTunableNumber manipulatorReleaseVoltage =
+  public final LoggedTunableNumber manipulatorCoralMotor1ReleaseVoltage =
       new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
-  public final LoggedTunableNumber manipulatorEjectVoltage =
+  public final LoggedTunableNumber manipulatorCoralMotor1EjectVoltage =
+      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
+
+  // Coral Motor 2 (for blue and green rollers) Tunable Numbers
+private final LoggedTunableNumber manipulatorCoralMotor2Voltage =
+  new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
+public final LoggedTunableNumber manipulatorCoralMotor2CollectionVoltage =
+  new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
+public final LoggedTunableNumber manipulatorCoralMotor2ReleaseVoltage =
+  new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
+public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
+  new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
+
+// Algae Motor (black rollers) Tunable Numbers;
+  private final LoggedTunableNumber manipulatorAlgaeMotorVoltage =
+      new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
+  public final LoggedTunableNumber manipulatorAlgaeCollectionVoltage =
+      new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
+  public final LoggedTunableNumber manipulatorAlgaeReleaseVoltage =
+      new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
+  public final LoggedTunableNumber manipulatorAlgaeEjectVoltage =
       new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
 
   // Initialize the last state to the uninitialized state and the current state to the desired
   // initial state to ensure that the onEnter method is invoked when the subsystem in constructed.
-  private State state = State.WAITING_FOR_GAME_PIECE;
+  private State state = State.WAITING_FOR_L1_CORAL_IN_FUNNEL;
   private State lastState = State.UNINITIALIZED;
 
   // Some state transitions are triggered by a timeout. Use Timer objects for that purpose.
   Timer inIndexingState = new Timer();
   Timer ejectingTimer = new Timer();
-
+  
   // Use a linear filter to detect when the game piece has stalled against the hard stop. We want to
   // use a filter to eliminate false positives due to current spikes that may occur when the motor
   // starts or when the game piece first makes contact with the manipulator.
@@ -118,25 +140,35 @@ public class Manipulator extends SubsystemBase {
    * https://www.chiefdelphi.com/t/enums-and-subsytem-states/463974/6
    */
   private enum State {
-    WAITING_FOR_GAME_PIECE {
+    WAITING_FOR_L1_CORAL_IN_FUNNEL {
       @Override
       void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(
-            Volts.of(subsystem.manipulatorCollectionVoltage.get()));
+        // Set the voltage of all motors to the collection voltage.
+        subsystem.setManipulatorCoralMotor1Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+
+        subsystem.setManipulatorCoralMotor2Voltage(
+              Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
+
+        subsystem.setManipulatorAlgaeMotorVoltage(
+                Volts.of(subsystem.manipulatorAlgaeMotorCollectionVoltage.get()));
+       
       }
 
       @Override
       void execute(Manipulator subsystem) {
 
-        LEDs.getInstance().requestState(States.WAITING_FOR_GAME_PIECE);
+        // LEDs.getInstance().requestState(States.WAITING_FOR_GAME_PIECE); FIXME: The LED transition might not be necessary right now
+
 
         // Often preloading a game piece requires a special case state transition.
-        if (DriverStation.isDisabled() && subsystem.isManipulatorIRBlocked()) {
-          subsystem.setState(State.GAME_PIECE_IN_MANIPULATOR);
-        }
-        // check if the game piece is detected by the manipulator
-        else if (subsystem.isManipulatorIRBlocked()) {
-          subsystem.setState(State.INDEXING_GAME_PIECE_IN_MANIPULATOR);
+        if (DriverStation.isDisabled() && (subsystem.isManipulatorFrontLeftBlocked() && subsystem.isManipulatorFrontCenterBlocked() && 
+        subsystem.isManipulatorFrontRightLBlocked() && subsystem.isManipulatorBackCenterBlocked()) ) {
+          subsystem.setState(State.CORAL_IN_MANIPULATOR_L1);
+        } // check if the game piece is detected by the manipulator
+        else if (subsystem.isManipulatorFrontLeftBlocked() || subsystem.isManipulatorFrontCenterBlocked() || 
+                 subsystem.isManipulatorFrontRightLBlocked() || subsystem.isManipulatorBackCenterBlocked()) {
+          subsystem.setState(State.CENTERING_CORAL_IN_MANIPULATOR_L1); // FIXME: enumerate all the methods in the else if block above.
         }
       }
 
@@ -144,7 +176,7 @@ public class Manipulator extends SubsystemBase {
       void onExit(Manipulator subsystem) {}
     },
 
-    INDEXING_GAME_PIECE_IN_MANIPULATOR {
+    CENTERING_CORAL_IN_MANIPULATOR_L1 {
       @Override
       void onEnter(Manipulator subsystem) {
         subsystem.setManipulatorMotorVoltage(
