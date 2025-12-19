@@ -22,10 +22,19 @@ public class ManipulatorConstants {
 
   public static final int MANIPULATOR_MOTOR_ID = 56;
   public static final int MANIPULATOR_IR_SENSOR_ID = 0;
-  public static final int MANIPULATOR_IR_BACKUP_SENSOR_ID = 1;
+  public static final int MANIPULATOR_IR_BACKUP_SENSOR_ID = 1; //aren't we doing 4 ir sensors
+
+  // just in case we're doing 4 ir sensors, im not familiar
+  public static final int FRONT_LEFT_IR_DIO = 0;
+  public static final int FRONT_CENTER_IR_DIO = 1;
+  public static final int FRONT_RIGHT_IR_DIO = 2;
+  public static final int BACK_CENTER_IR_DIO = 3;
+  
 
   // the following are determined based on the mechanical design of the arm
-  public static final boolean MANIPULATOR_MOTOR_INVERTED = false;
+  public static final boolean LEFT_CORAL_MOTOR_INVERTED = false;
+  public static final boolean RIGHT_CORAL_MOTOR_INVERTED = true;
+  public static final boolean ALGAE_MOTOR_INVERTED = false;
   public static final double MANIPULATOR_GEAR_RATIO = 1.0;
 
   // voltages are determined empirically through tuning

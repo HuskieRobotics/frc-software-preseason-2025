@@ -22,26 +22,43 @@ public interface ManipulatorIO {
     double algaeMotorSupplyCurrentAmps = 0;
 
     //temp
-    double leftCoralMotorTemperature = 0;
-    double rightCoralMotorTemperature = 0;
-    double algaeMotorTemperature = 0;
+    double leftCoralMotorTemperatureCelsius = 0;
+    double rightCoralMotorTemperatureCelsius = 0;
+    double algaeMotorTemperatureCelsius = 0;
 
     //voltage
     double leftCoralMotorVoltage = 0;
     double rightCoralMotorVoltage = 0;
     double algaeMotorVoltage = 0;
 
+    // velocity (only for algae motor)
+    double algaeVelocityRPS = 0;
+
     //connection status
     boolean leftCoralMotorConnected = false;
     boolean rightCoralMotorConnected = false;
     boolean algaeMotorConnected = false;
+
+    //ir blocked
+
+    public boolean frontLeftSensorBlocked = false;
+    public boolean frontCenterSensorBlocked = false;
+    public boolean frontRightSensorBlocked = false;
+    public boolean backCenterSensorBlocked = false;
+    
 
 
   }
 
   public default void updateInputs(ManipulatorIOInputs inputs) {}
 
-  public default void setManipulatorVoltage(Voltage volts) {}
+  public default void setLeftCoralVoltage(Voltage volts) {}
+
+  public default void setRightCoralVoltage(Voltage volts) {}
+
+  public default void setAlgaeVoltage(Voltage volts) {}
+
+  
 
 
 
