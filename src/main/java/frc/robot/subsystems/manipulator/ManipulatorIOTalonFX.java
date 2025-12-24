@@ -25,7 +25,10 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-
+import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.configs.CANrangeConfiguration;
+import com.ctre.phoenix6.hardware.CANrange;
+import com.ctre.phoenix6.signals.UpdateModeValue;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -33,7 +36,6 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
-import edu.wpi.first.wpilibj.DigitalInput; // imported this class for the sensors
 import frc.lib.team254.Phoenix6Util;
 import frc.lib.team3015.subsystem.FaultReporter;
 import frc.lib.team3061.RobotConfig;
@@ -55,20 +57,25 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
   private TorqueCurrentFOC rightCurrentRequest;
   private TorqueCurrentFOC algaeCurrentRequest;
 
-  //added digital inputs for IR sensors
-  private DigitalInput frontLeftIR;
-  private DigitalInput frontCenterIR;
-  private DigitalInput frontRightIR;
-  private DigitalInput backCenterIR;
+  //import for the canrange sensors
+  private final CANBus kCANBus = new CANBus("rio");
+
+  //declarations for the canrange sensors below 
+  private final CANrange frontLeft;
+  private final CANrange frontCenter;
+  private final CANrange frontRight;
+  private final CANrange backCenter;
 
   private Alert manipulatorConfigAlert =
       new Alert("Failed to apply configuration for manipulator.", AlertType.kError);
   
-  //status signals for each motor
-
+ /*
+  * Status signals for each motor
+  */
+ 
   //stator
   private StatusSignal<Current> leftCoralMotorStatorCurrentAmps;
-  private StatusSignal<Current> rightCoralMotorStatorCusrrentAmps;
+  private StatusSignal<Current> rightCoralMotorStatorCurrentAmps;
   private StatusSignal<Current> algaeMotorStatorCurrentAmp;
 
   //supply
@@ -89,7 +96,6 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
   // velocity (only for algae motor)
   private StatusSignal<AngularVelocity> algaeVelocityRPS;
 
-
   private final Debouncer leftCoralMotorDebouncer = new Debouncer(0.5, Debouncer.DebounceType.kBoth);
   private final Debouncer rightCoralMotorDebouncer = new Debouncer(0.5, Debouncer.DebounceType.kBoth);
   private final Debouncer algaeMotorDebouncer = new Debouncer(0.5, Debouncer.DebounceType.kBoth);
@@ -100,15 +106,12 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     rightCoralMotor = new TalonFX(MANIPULATOR_RIGHT_MOTOR_ID);
     algaeMotor = new TalonFX(MANIPULATOR_ALGAE_MOTOR_ID);
 
-    // construct digital inputs (not sure if I should do it at this stage)
-
-    frontLeftIR   = new DigitalInput(FRONT_LEFT_IR_DIO);
-    frontCenterIR = new DigitalInput(FRONT_CENTER_IR_DIO);
-    frontRightIR  = new DigitalInput(FRONT_RIGHT_IR_DIO);
-    backCenterIR  = new DigitalInput(BACK_CENTER_IR_DIO);
-    
-
-
+    //FIXME: make sure that the intiializations for the sensors are done correctly
+    frontLeft = new CANrange(1, kCANBus);
+    frontCenter = new CANrange(2, kCANBus);
+    frontRight = new CANrange(3, kCANBus);
+    backCenter = new CANrange(4, kCANBus);
+  
     leftCurrentRequest = new TorqueCurrentFOC(0.0);
     rightCurrentRequest = new TorqueCurrentFOC(0.0);
     algaeCurrentRequest = new TorqueCurrentFOC(0.0);
@@ -117,11 +120,9 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     rightVoltageRequest = new VoltageOut(0.0);
     algaeVoltageRequest = new VoltageOut(0.0);
 
-
     leftCoralMotorVoltage = leftCoralMotor.getMotorVoltage();
     rightCoralMotorVoltage = rightCoralMotor.getMotorVoltage();
     algaeMotorVoltage = algaeMotor.getMotorVoltage();
-
 
     // To improve performance, subsystems register all their signals with Phoenix6Util. All signals
     // on the entire CAN bus will be refreshed at the same time by Phoenix6Util; so, there is no
@@ -129,7 +130,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     Phoenix6Util.registerSignals(
         false,
         leftCoralMotorStatorCurrentAmps,
-        rightCoralMotorStatorCusrrentAmps,
+        rightCoralMotorStatorCurrentAmps,
         algaeMotorStatorCurrentAmp,
         leftCoralMotorVoltage,
         rightCoralMotorVoltage,
@@ -165,7 +166,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
 
     inputs.rightCoralMotorConnected = rightCoralMotorDebouncer.calculate(
       BaseStatusSignal.isAllGood(
-          rightCoralMotorStatorCusrrentAmps,
+          rightCoralMotorStatorCurrentAmps,
           rightCoralMotorSupplyCurrentAmps,
           rightCoralMotorTemperature,
           rightCoralMotorVoltage));
@@ -178,7 +179,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
           algaeMotorVoltage));
 
     inputs.leftCoralMotorStatorCurrentAmps = leftCoralMotorStatorCurrentAmps.getValueAsDouble();
-    inputs.rightCoralMotorStatorCurrentAmps = rightCoralMotorStatorCusrrentAmps.getValueAsDouble();
+    inputs.rightCoralMotorStatorCurrentAmps = rightCoralMotorStatorCurrentAmps.getValueAsDouble();
     inputs.algaeMotorStatorCurrentAmps = algaeMotorStatorCurrentAmp.getValueAsDouble();
   
     inputs.leftCoralMotorSupplyCurrentAmps = leftCoralMotorSupplyCurrentAmps.getValueAsDouble();
@@ -195,11 +196,11 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
         
     inputs.algaeVelocityRPS = algaeVelocityRPS.getValue().in(RotationsPerSecond); // I believe the motor we are calculating velocity for is algae
 
-    // update IR sensor values. I'm not sure why we only had two sensors previosuly
-    inputs.frontLeftSensorBlocked   = !frontLeftIR.get();
-    inputs.frontCenterSensorBlocked = !frontCenterIR.get();
-    inputs.frontRightSensorBlocked  = !frontRightIR.get();
-    inputs.backCenterSensorBlocked  = !backCenterIR.get();
+    //FIXME: make sure that we are updating the sensor values correctly below
+    inputs.frontLeftSensorBlocked  = frontLeft.getIsDetected(false);
+    inputs.frontCenterSensorBlocked = frontCenter.getIsDetected(false);
+    inputs.frontRightSensorBlocked = frontRight.getIsDetected(false);
+    inputs.backCenterSensorBlocked = backCenter.getIsDetected(false);
 
   }
 

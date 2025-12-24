@@ -39,15 +39,12 @@ public interface ManipulatorIO {
     boolean rightCoralMotorConnected = false;
     boolean algaeMotorConnected = false;
 
-    //ir blocked
-
+    //canrange sensor values
     public boolean frontLeftSensorBlocked = false;
     public boolean frontCenterSensorBlocked = false;
     public boolean frontRightSensorBlocked = false;
     public boolean backCenterSensorBlocked = false;
     
-
-
   }
 
   public default void updateInputs(ManipulatorIOInputs inputs) {}
@@ -58,10 +55,4 @@ public interface ManipulatorIO {
 
   public default void setAlgaeVoltage(Voltage volts) {}
 
-  
-
-
-
-  
-  
 }
