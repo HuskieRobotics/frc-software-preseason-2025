@@ -20,16 +20,11 @@ public class ManipulatorConstants {
   public static final int MANIPULATOR_RIGHT_MOTOR_ID = 54;
   public static final int MANIPULATOR_ALGAE_MOTOR_ID = 57;
 
-  public static final int MANIPULATOR_MOTOR_ID = 56; // what is this for??
-  public static final int MANIPULATOR_IR_SENSOR_ID = 0;
-  public static final int MANIPULATOR_IR_BACKUP_SENSOR_ID = 1; //aren't we doing 4 ir sensors
-
-  // just in case we're doing 4 ir sensors, im not familiar
-  public static final int FRONT_LEFT_IR_DIO = 0;
-  public static final int FRONT_CENTER_IR_DIO = 1;
-  public static final int FRONT_RIGHT_IR_DIO = 2;
-  public static final int BACK_CENTER_IR_DIO = 3;
-  
+  //CAN ID's for the canrange sensors
+  public static final int FRONT_LEFT_SENSOR_ID = 14;
+  public static final int FRONT_CENTER_SENSOR_ID = 0; //FIXME: unsure of ID
+  public static final int FRONT_RIGHT_SENSOR_ID = 17;
+  public static final int BACK_CENTER_SENSOR_ID = 0; //FIXME: unsure of ID
 
   // the following are determined based on the mechanical design of the arm
   public static final boolean LEFT_CORAL_MOTOR_INVERTED = false;

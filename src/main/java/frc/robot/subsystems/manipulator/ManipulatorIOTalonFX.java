@@ -1,22 +1,8 @@
 // copied 3061-lib code
 
 package frc.robot.subsystems.manipulator;
-
 import static edu.wpi.first.units.Units.RotationsPerSecond;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.ALGAE_MOTOR_INVERTED;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.BACK_CENTER_IR_DIO;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.FRONT_CENTER_IR_DIO;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.FRONT_LEFT_IR_DIO;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.FRONT_RIGHT_IR_DIO;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.LEFT_CORAL_MOTOR_INVERTED;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.MANIPULATOR_ALGAE_MOTOR_ID;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.MANIPULATOR_GEAR_RATIO;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.MANIPULATOR_LEFT_MOTOR_ID;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.MANIPULATOR_RIGHT_MOTOR_ID;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.RIGHT_CORAL_MOTOR_INVERTED;
-import static frc.robot.subsystems.manipulator.ManipulatorConstants.SUBSYSTEM_NAME;
-
+import static frc.robot.subsystems.manipulator.ManipulatorConstants.*;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -48,14 +34,10 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
   private TalonFX rightCoralMotor;
   private TalonFX algaeMotor;
 
+  // This mechanism uses voltage control only, no current or velocity control.
   private VoltageOut leftVoltageRequest;
   private VoltageOut rightVoltageRequest;
   private VoltageOut algaeVoltageRequest;
-
-  //current (not sure if needed, isn't this voltage based control?)
-  private TorqueCurrentFOC leftCurrentRequest;
-  private TorqueCurrentFOC rightCurrentRequest;
-  private TorqueCurrentFOC algaeCurrentRequest;
 
   //import for the canrange sensors
   private final CANBus kCANBus = new CANBus("rio");
@@ -66,9 +48,28 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
   private final CANrange frontRight;
   private final CANrange backCenter;
 
-  private Alert manipulatorConfigAlert =
-      new Alert("Failed to apply configuration for manipulator.", AlertType.kError);
-  
+  /*
+  * A config alert is needed for each device that may fail configuration. 
+  * In this subsystem, that's three motors and four CANranges; so, seven alert objects in total. 
+  * Otherwise, if the object is reused, a later successful configuration will overwrite an earlier failed configuration and we will never know.
+  */
+
+  private Alert leftCoralMotorAlert =
+      new Alert("Failed to apply configuration for left coral motor.", AlertType.kError);
+  private Alert rightCoralMotorAlert =
+      new Alert("Failed to apply configuration for right coral motor.", AlertType.kError);
+  private Alert algaeMotorAlert =
+      new Alert("Failed to apply configuration for algae motor.", AlertType.kError);
+
+  private Alert frontLeftAlert =
+      new Alert("Failed to apply configuration for front left sensor.", AlertType.kError);
+  private Alert frontCenterAlert =
+      new Alert("Failed to apply configuration for front center sensor.", AlertType.kError);
+  private Alert frontRightAlert =
+      new Alert("Failed to apply configuration for front right sensor.", AlertType.kError);
+  private Alert backCenterAlert =
+      new Alert("Failed to apply configuration for back center sensor.", AlertType.kError);
+
  /*
   * Status signals for each motor
   */
@@ -76,7 +77,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
   //stator
   private StatusSignal<Current> leftCoralMotorStatorCurrentAmps;
   private StatusSignal<Current> rightCoralMotorStatorCurrentAmps;
-  private StatusSignal<Current> algaeMotorStatorCurrentAmp;
+  private StatusSignal<Current> algaeMotorStatorCurrentAmps;
 
   //supply
   private StatusSignal<Current> leftCoralMotorSupplyCurrentAmps;
@@ -103,26 +104,35 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
   public ManipulatorIOTalonFX() {
 
     leftCoralMotor = new TalonFX(MANIPULATOR_LEFT_MOTOR_ID, RobotConfig.getInstance().getCANBusName());
-    rightCoralMotor = new TalonFX(MANIPULATOR_RIGHT_MOTOR_ID);
-    algaeMotor = new TalonFX(MANIPULATOR_ALGAE_MOTOR_ID);
+    rightCoralMotor = new TalonFX(MANIPULATOR_RIGHT_MOTOR_ID, RobotConfig.getInstance().getCANBusName());
+    algaeMotor = new TalonFX(MANIPULATOR_ALGAE_MOTOR_ID, RobotConfig.getInstance().getCANBusName());
 
-    //FIXME: make sure that the intiializations for the sensors are done correctly
-    frontLeft = new CANrange(1, kCANBus);
-    frontCenter = new CANrange(2, kCANBus);
-    frontRight = new CANrange(3, kCANBus);
-    backCenter = new CANrange(4, kCANBus);
-  
-    leftCurrentRequest = new TorqueCurrentFOC(0.0);
-    rightCurrentRequest = new TorqueCurrentFOC(0.0);
-    algaeCurrentRequest = new TorqueCurrentFOC(0.0);
+    frontLeft = new CANrange(FRONT_LEFT_SENSOR_ID, kCANBus);
+    frontCenter = new CANrange(FRONT_CENTER_SENSOR_ID, kCANBus);
+    frontRight = new CANrange(FRONT_RIGHT_SENSOR_ID, kCANBus);
+    backCenter = new CANrange(BACK_CENTER_SENSOR_ID, kCANBus);
 
     leftVoltageRequest = new VoltageOut(0.0);
     rightVoltageRequest = new VoltageOut(0.0);
     algaeVoltageRequest = new VoltageOut(0.0);
 
+    // All status signal objects initialized below for simulation
     leftCoralMotorVoltage = leftCoralMotor.getMotorVoltage();
     rightCoralMotorVoltage = rightCoralMotor.getMotorVoltage();
     algaeMotorVoltage = algaeMotor.getMotorVoltage();
+    leftCoralMotorStatorCurrentAmps = leftCoralMotor.getStatorCurrent();
+    rightCoralMotorStatorCurrentAmps = rightCoralMotor.getStatorCurrent();
+    algaeMotorStatorCurrentAmps = algaeMotor.getStatorCurrent();
+
+    leftCoralMotorTemperature = leftCoralMotor.getTemperature();
+    rightCoralMotorTemperature = rightCoralMotor.getTemperature();
+    algaeMotorTemperature = algaeMotor.getTemperature();
+
+    leftCoralMotorSupplyCurrentAmps = leftCoralMotor.getSupplyCurrent();
+    rightCoralMotorSupplyCurrentAmps = rightCoralMotor.getSupplyCurrent();
+    algaeMotorSupplyCurrentAmps = algaeMotor.getSupplyCurrent();
+
+    algaeVelocityRPS = algaeMotor.getVelocityRPS();
 
     // To improve performance, subsystems register all their signals with Phoenix6Util. All signals
     // on the entire CAN bus will be refreshed at the same time by Phoenix6Util; so, there is no
@@ -131,7 +141,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
         false,
         leftCoralMotorStatorCurrentAmps,
         rightCoralMotorStatorCurrentAmps,
-        algaeMotorStatorCurrentAmp,
+        algaeMotorStatorCurrentAmps,
         leftCoralMotorVoltage,
         rightCoralMotorVoltage,
         algaeMotorVoltage,
@@ -140,7 +150,8 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
         algaeMotorTemperature,
         leftCoralMotorSupplyCurrentAmps,
         rightCoralMotorSupplyCurrentAmps,
-        algaeMotorSupplyCurrentAmps
+        algaeMotorSupplyCurrentAmps,
+        algaeVelocityRPS
         );
 
     configLeftCoralMotor(leftCoralMotor);
