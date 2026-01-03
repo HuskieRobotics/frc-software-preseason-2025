@@ -103,6 +103,7 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
   // transition. Instead, those commands will change a variable which is monitored within the state
   // machine.
   private boolean releaseButtonPressed = false;
+  private boolean ejectButtonPressed = false;
 
   public Manipulator(ManipulatorIO io) {
 
@@ -193,14 +194,56 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
 
         LEDs.getInstance().requestState(States.INDEXING_GAME_PIECE);
 
+        /* This logic under is not needed as we will not be using hard stop detection—we will just use
+        sensor detection instead.
+
         // check if the game piece has stalled against the hard stop
         if (subsystem.isManipulatorIRBlocked()
             && subsystem.currentInAmps.lastValue() > COLLECTION_CURRENT_SPIKE_THRESHOLD) {
           subsystem.setState(State.GAME_PIECE_IN_MANIPULATOR);
         }
+        */
+
         // check if the timeout has elapsed which indicates that the game piece may be stuck
         else if (subsystem.inIndexingState.hasElapsed(COLLECTION_TIME_OUT)) {
+          ejectGamePiece();
           subsystem.setState(GAME_PIECE_STUCK);
+        }
+
+        // Centering logic: nudge piece left or right depending on which front sensor is triggered.
+        // If only the left sensor is triggered, nudge the piece to the right and vice versa.
+        if (subsystem.isManipulatorFrontLeftBlocked() && !subsystem.isManipulatorFrontRightBlocked()) {
+          // move piece right: run left-side rollers forward and right-side rollers (or opposing rollers)
+          // slightly in reverse to bias the piece toward the right.
+          // The constants are to slow the impact of the coral onto the manipulator walls.
+          subsystem.setManipulatorCoralMotor1Voltage(
+          Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+          subsystem.setManipulatorCoralMotor2Voltage(
+          Volts.of(-subsystem.manipulatorCoralMotor2CollectionVoltage.get() "* 0.6"));
+          subsystem.setManipulatorAlgaeMotorVoltage(
+          Volts.of(subsystem.manipulatorAlgaeCollectionVoltage.get() "* 0.8"));
+        } else if (subsystem.isManipulatorFrontRightBlocked() && !subsystem.isManipulatorFrontLeftBlocked()) {
+          // move piece left: reverse of above
+          subsystem.setManipulatorCoralMotor1Voltage(
+          Volts.of(-subsystem.manipulatorCoralMotor1CollectionVoltage.get() "* 0.6"));
+          subsystem.setManipulatorCoralMotor2Voltage(
+          Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
+          subsystem.setManipulatorAlgaeMotorVoltage(
+          Volts.of(-subsystem.manipulatorAlgaeCollectionVoltage.get() "* 0.8"));
+        } else {
+          // Default: continue normal collection voltages
+          subsystem.setManipulatorCoralMotor1Voltage(
+          Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+          subsystem.setManipulatorCoralMotor2Voltage(
+          Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
+          subsystem.setManipulatorAlgaeMotorVoltage(
+          Volts.of(subsystem.manipulatorAlgaeCollectionVoltage.get()));
+          // This might be a place where we can shift back to WAITING_FOR_L1_CORAL_IN_FUNNEL state if no sensors are blocked.
+        }
+
+        if(((subsystem.isManipulatorFrontCenterBlocked() && (subsystem.isManipulatorFrontRightBlocked() && 
+           subsystem.isManipulatorFrontLeftBlocked())) || subsystem.isManipulatorBackCenterBlocked()) ){
+          subsystem.setState(State.CORAL_IN_MANIPULATOR_L1);
         }
       }
 
@@ -232,7 +275,7 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
       void onExit(Manipulator subsystem) {}
     },
 
-    GAME_PIECE_IN_MANIPULATOR {
+    CORAL_IN_MANIPULATOR_L1 {
       @Override
       void onEnter(Manipulator subsystem) {
         subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
@@ -346,6 +389,11 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
     releaseButtonPressed = true;
   }
 
+  public void ejectGamePiece(){
+    ejectButtonPressed = true;
+    //  FIXME: implement eject logic
+  }
+
   public boolean isIndexingCoralL1() {
     return state == State.CENTERING_CORAL_IN_MANIPULATOR_L1;
   }
@@ -358,8 +406,8 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
     return state == State. //FIXME: replace with necessary state
   }
 
-  public boolean hasIndexedCoralL1() {
-    return state == State.  //FIXME: replace with necessary state
+  public boolean hasIndexedCoralL1() { 
+    return state == State.GAME_PIECE_IN_MANIPULATOR;
   }
 
   public boolean hasIndexedCoralL2_L4(){
@@ -425,7 +473,7 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
     return inputs.isManipulatorBackCenterBlocked;
   }
 
-  private boolean isManipulatorBackLeftBlocked(){
+  private boolean isManipulatorBackLeftBlocked(){ // algae sensor
     return inputs.isManipulatorBackLeftBlocked;
   }
 
