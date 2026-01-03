@@ -30,18 +30,52 @@ public class ManipulatorConstants {
   public static final boolean LEFT_CORAL_MOTOR_INVERTED = false;
   public static final boolean RIGHT_CORAL_MOTOR_INVERTED = true;
   public static final boolean ALGAE_MOTOR_INVERTED = false;
-  public static final double MANIPULATOR_GEAR_RATIO = 1.0;
 
-  // voltages are determined empirically through tuning
-  public static final double MANIPULATOR_COLLECTION_VOLTAGE = 4.0;
-  public static final double MANIPULATOR_RELEASE_VOLTAGE = 4.0;
-  public static final double MANIPULATOR_EJECT_VOLTAGE = -12.0;
+  // gear ratios for the motors
+  public static final double CORAL_MOTORS_GEAR_RATIO = 1.0;
+  public static final double ALGAE_MOTOR_GEAR_RATIO = 1.0;
+
+
+  /*
+  * voltages are determined empirically through tuning
+  */
+
+  // voltage constants for the left coral motor
+  public static final double LEFT_CORAL_MOTOR_COLLECTION_VOLTAGE = 4.0;
+  public static final double LEFT_CORAL_MOTOR_RELEASE_VOLTAGE = 4.0;
+  public static final double LEFT_CORAL_MOTOR_EJECT_VOLTAGE = -12.0;
+
+  // voltage constants for the right coral motor
+  public static final double RIGHT_CORAL_MOTOR_COLLECTION_VOLTAGE = 4.0;
+  public static final double RIGHT_CORAL_MOTOR_RELEASE_VOLTAGE = 4.0;
+  public static final double RIGHT_CORAL_MOTOR_EJECT_VOLTAGE = -12.0;
+
+  // voltage constants for the algae motor
+  public static final double ALGAE_MOTOR_COLLECTION_VOLTAGE = 6.0;
+  public static final double ALGAE_MOTOR_RELEASE_VOLTAGE = -6.0;
+  public static final double ALGAE_MOTOR_EJECT_VOLTAGE = -12.0;
 
   // used to trigger state transitions
   public static final double COLLECTION_TIME_OUT = 2.0;
   public static final double EJECT_DURATION_SECONDS = 0.5;
 
-  // current limits are determined based on current budget for the robot
+  /*
+  * current limits are determined based on current budget for the robot
+  */ 
+  
+  // current limits for the left coral motor
+  public static final double LEFT_CORAL_MOTOR_CONTINUOUS_CURRENT_LIMIT = 30;
+  public static final double LEFT_CORAL_MOTOR_PEAK_CURRENT_LIMIT = 40;
+
+  // current limits for the right coral motor
+  public static final double RIGHT_CORAL_MOTOR_CONTINUOUS_CURRENT_LIMIT = 30;
+  public static final double RIGHT_CORAL_MOTOR_PEAK_CURRENT_LIMIT = 40;
+
+  // current limits for the algae motor
+  public static final double ALGAE_MOTOR_CONTINUOUS_CURRENT_LIMIT = 30;
+  public static final double ALGAE_MOTOR_PEAK_CURRENT_LIMIT = 40;
+
+  // general manipulator current limits -- was previously here
   public static final double MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT = 40;
   public static final double COLLECTION_CURRENT_SPIKE_THRESHOLD = 35.0;
 }
