@@ -154,8 +154,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
         algaeVelocityRPS
         );
 
-    configLeftCoralMotor(leftCoralMotor);
-    configRightCoralMotor(rightCoralMotor);
+    configBothCoralMotors(leftCoralMotor, rightCoralMotor);
     configAlgaeMotor(algaeMotor);
   }
 
@@ -184,7 +183,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
 
     inputs.algaeMotorConnected = algaeMotorDebouncer.calculate(
       BaseStatusSignal.isAllGood(
-          algaeMotorStatorCurrentAmp,
+          algaeMotorStatorCurrentAmps,
           algaeMotorSupplyCurrentAmps,
           algaeMotorTemperature,
           algaeMotorVoltage));
@@ -233,66 +232,52 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     algaeMotor.setControl(algaeVoltageRequest.withOutput(volts));
   }
 
-  private void configLeftCoralMotor(TalonFX motor) {
-    TalonFXConfiguration config = new TalonFXConfiguration();
+  private void configBothCoralMotors(TalonFX leftMotor, TalonFX rightMotor) {
+    // create the config objects for the left and right motors
+    TalonFXConfiguration leftConfig = new TalonFXConfiguration();
+    TalonFXConfiguration rightConfig = new TalonFXConfiguration();
 
-    config.CurrentLimits.SupplyCurrentLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
-    config.CurrentLimits.SupplyCurrentLowerLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
-    config.CurrentLimits.SupplyCurrentLowerTime = 0;
-    config.CurrentLimits.SupplyCurrentLimitEnable = true;
-    config.CurrentLimits.StatorCurrentLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
-    config.CurrentLimits.StatorCurrentLimitEnable = true;
-
-    config.Feedback.SensorToMechanismRatio = MANIPULATOR_GEAR_RATIO;
-
-    config.MotorOutput.Inverted =
+    // config the necessary parameters for the left coral motor
+    leftConfig.CurrentLimits.SupplyCurrentLimit = LEFT_CORAL_MOTOR_PEAK_CURRENT_LIMIT;
+    leftConfig.CurrentLimits.SupplyCurrentLowerLimit = LEFT_CORAL_MOTOR_PEAK_CURRENT_LIMIT;
+    leftConfig.CurrentLimits.SupplyCurrentLowerTime = 0;
+    leftConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
+    leftConfig.CurrentLimits.StatorCurrentLimit = LEFT_CORAL_MOTOR_PEAK_CURRENT_LIMIT;
+    leftConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+    leftConfig.Feedback.SensorToMechanismRatio = CORAL_MOTORS_GEAR_RATIO;
+    leftConfig.MotorOutput.Inverted =
         LEFT_CORAL_MOTOR_INVERTED
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
-    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    leftConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
-    // It is critical that devices are successfully configured. The applyAndCheckConfiguration
-    // method will apply the configuration, read back the configuration, and ensure that it is
-    // correct. If not, it will reattempt five times and eventually, generate an alert.
-    Phoenix6Util.applyAndCheckConfiguration(motor, config, manipulatorConfigAlert);
-
-    
-    // A subsystem needs to register each device with FaultReporter. FaultReporter will check
-    // devices for faults periodically when the robot is disabled and generate alerts if any faults
-    // are found.
-    FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, "Left coral motor", motor);
-  }
-
-  private void configRightCoralMotor(TalonFX motor){
-    TalonFXConfiguration config = new TalonFXConfiguration();
-
-    config.CurrentLimits.SupplyCurrentLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
-    config.CurrentLimits.SupplyCurrentLowerLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
-    config.CurrentLimits.SupplyCurrentLowerTime = 0;
-    config.CurrentLimits.SupplyCurrentLimitEnable = true;
-    config.CurrentLimits.StatorCurrentLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
-    config.CurrentLimits.StatorCurrentLimitEnable = true;
-
-    config.Feedback.SensorToMechanismRatio = MANIPULATOR_GEAR_RATIO;
-
-    config.MotorOutput.Inverted =
+    // config the necessary parameters for the right coral motor
+    rightConfig.CurrentLimits.SupplyCurrentLimit = RIGHT_CORAL_MOTOR_PEAK_CURRENT_LIMIT;
+    rightConfig.CurrentLimits.SupplyCurrentLowerLimit = RIGHT_CORAL_MOTOR_PEAK_CURRENT_LIMIT;
+    rightConfig.CurrentLimits.SupplyCurrentLowerTime = 0;
+    rightConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
+    rightConfig.CurrentLimits.StatorCurrentLimit = RIGHT_CORAL_MOTOR_PEAK_CURRENT_LIMIT;
+    rightConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+    rightConfig.Feedback.SensorToMechanismRatio = CORAL_MOTORS_GEAR_RATIO;
+    rightConfig.MotorOutput.Inverted =
         RIGHT_CORAL_MOTOR_INVERTED
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
-    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
-
+    rightConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    
     // It is critical that devices are successfully configured. The applyAndCheckConfiguration
     // method will apply the configuration, read back the configuration, and ensure that it is
     // correct. If not, it will reattempt five times and eventually, generate an alert.
-    Phoenix6Util.applyAndCheckConfiguration(motor, config, manipulatorConfigAlert);
+    Phoenix6Util.applyAndCheckConfiguration(leftMotor, leftConfig, leftCoralMotorAlert);
+    Phoenix6Util.applyAndCheckConfiguration(rightMotor, rightConfig, rightCoralMotorAlert);
 
-    
     // A subsystem needs to register each device with FaultReporter. FaultReporter will check
     // devices for faults periodically when the robot is disabled and generate alerts if any faults
     // are found.
-    FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, "Right coral motor", motor);
+    FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, "Left coral motor", leftMotor);
+    FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, "Right coral motor", rightMotor);
   }
-
+  
   private void configAlgaeMotor(TalonFX motor){
     TalonFXConfiguration config = new TalonFXConfiguration();
 

@@ -1,8 +1,6 @@
 package frc.robot.subsystems.manipulator;
-
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.manipulator.ManipulatorConstants.*;
-
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -18,25 +16,6 @@ import frc.lib.team6328.util.LoggedTunableNumber;
 import frc.robot.operator_interface.OISelector;
 import org.littletonrobotics.junction.Logger;
 
-/**
- * Example subsystem for controlling an intake or manipulator mechanism.
- *
- * <p>WARNING: This code is for example purposes only. It will not work with a physical manipulator
- * mechanism without changes. While it is derived from Huskie Robotics 2025 manipulator, it has been
- * simplified to highlight select best practices.
- *
- * <p>This example illustrates the following features:
- *
- * <ul>
- *   <li>Use of a state machine to model a sophisticated mechanism
- *   <li>Use of a sensor, with redundancy, to detect the presence of a game piece
- *   <li>AdvantageKit support for logging and replay
- *   <li>Use of a current filters to determine if the game piece has stalled against the hard stop
- *   <li>Use of logged tunable numbers for manual control and testing
- *   <li>Use of a system check command to verify the manipulator's functionality
- *   <li>Use of a fault reporter to report issues with the manipulator's motor
- * </ul>
- */
 public class Manipulator extends SubsystemBase {
 
   // all subsystems receive a reference to their IO implementation when constructed
@@ -52,37 +31,37 @@ public class Manipulator extends SubsystemBase {
   // efficient approach when, for example, empirically tuning the voltage to optimize performance
   // when collecting a game piece.
 
-  // Coral Motor 1 (for blue and green wheels) Tunable Numbers
+  // left coral motor Tunable Numbers
   private final LoggedTunableNumber testingMode =
       new LoggedTunableNumber("Manipulator/TestingMode", 0);
-  private final LoggedTunableNumber manipulatorCoralMotor1Voltage =
+  private final LoggedTunableNumber LeftCoralMotorVoltage =
       new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
-  public final LoggedTunableNumber manipulatorCoralMotor1CollectionVoltage =
-      new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
-  public final LoggedTunableNumber manipulatorCoralMotor1ReleaseVoltage =
-      new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
-  public final LoggedTunableNumber manipulatorCoralMotor1EjectVoltage =
-      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
-
-  // Coral Motor 2 (for blue and green rollers) Tunable Numbers
-private final LoggedTunableNumber manipulatorCoralMotor2Voltage =
+  public final LoggedTunableNumber LeftCoralMotorCollectionVoltage =
+      new LoggedTunableNumber("Manipulator/CollectionVoltage", LEFT_CORAL_MOTOR_COLLECTION_VOLTAGE);
+  public final LoggedTunableNumber LeftCoralMotorReleaseVoltage =
+      new LoggedTunableNumber("Manipulator/ReleaseVoltage", LEFT_CORAL_MOTOR_RELEASE_VOLTAGE);
+  public final LoggedTunableNumber LeftCoralMotorEjectVoltage =
+      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", LEFT_CORAL_MOTOR_EJECT_VOLTAGE);
+  
+  // right coral motor Tunable Numbers
+private final LoggedTunableNumber RightCoralMotorVoltage =
   new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
-public final LoggedTunableNumber manipulatorCoralMotor2CollectionVoltage =
-  new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
-public final LoggedTunableNumber manipulatorCoralMotor2ReleaseVoltage =
-  new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
-public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
-  new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
+public final LoggedTunableNumber RightCoralMotorCollectionVoltage =
+  new LoggedTunableNumber("Manipulator/CollectionVoltage", RIGHT_CORAL_MOTOR_COLLECTION_VOLTAGE);
+public final LoggedTunableNumber RightCoralMotorReleaseVoltage =
+  new LoggedTunableNumber("Manipulator/ReleaseVoltage", RIGHT_CORAL_MOTOR_RELEASE_VOLTAGE);
+public final LoggedTunableNumber RightCoralMotorEjectVoltage =
+  new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", RIGHT_CORAL_MOTOR_EJECT_VOLTAGE);
 
-// Algae Motor (black rollers) Tunable Numbers;
-  private final LoggedTunableNumber manipulatorAlgaeMotorVoltage =
+// Algae Motor (black rollers) Tunable Numbers
+  private final LoggedTunableNumber AlgaeMotorVoltage =
       new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
-  public final LoggedTunableNumber manipulatorAlgaeCollectionVoltage =
-      new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
-  public final LoggedTunableNumber manipulatorAlgaeReleaseVoltage =
-      new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
-  public final LoggedTunableNumber manipulatorAlgaeEjectVoltage =
-      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
+  public final LoggedTunableNumber AlgaeCollectionVoltage =
+      new LoggedTunableNumber("Manipulator/CollectionVoltage", ALGAE_MOTOR_COLLECTION_VOLTAGE);
+  public final LoggedTunableNumber AlgaeReleaseVoltage =
+      new LoggedTunableNumber("Manipulator/ReleaseVoltage", ALGAE_MOTOR_RELEASE_VOLTAGE);
+  public final LoggedTunableNumber AlgaeEjectVoltage =
+      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", ALGAE_MOTOR_EJECT_VOLTAGE);
 
   // Initialize the last state to the uninitialized state and the current state to the desired
   // initial state to ensure that the onEnter method is invoked when the subsystem in constructed.
@@ -114,44 +93,21 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
     FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getSystemCheckCommand());
   }
 
-  /**
-   * Few subsystems require the complexity of a state machine. A simpler command-based approach is
-   * usually better. However, there are times when diagraming and implementing a formal state
-   * machine is a reasonable approach. This code is designed to facilitate mapping from a formal
-   * state machine diagram to code.
-   *
-   * <p>The state machine is defined as an enum with each state having its own execute, onEnter, and
-   * onExit methods. The execute method is called every iteration of the periodic method. The
-   * onEnter and onExit methods are called when the state is entered and exited, respectively.
-   * Transitions between states are defined in the execute methods. It is critical that the setState
-   * method is only invoked within a state's execute method. Otherwise, it is possible for a state
-   * transition to be missed.
-   *
-   * <p>Our best practice is set the voltage/current/velocity/position of each device in the onEnter
-   * method of each state. This simplifies needing to keep track of which states could have been the
-   * previous states and the associated states of these devices.
-   *
-   * <p>This example state machine models a manipulator that collects a game piece. The game piece
-   * is first detected by a sensor. However, it is not considered indexed (i.e., fully collected)
-   * until the game piece stalls against the hard stop. This example also models detecting if the
-   * game piece becomes jammed while collecting and attempts to unjam the game piece or eject it.
-   * The game piece is released in response to a button press.
-   *
-   * <p>This approach is modeled after this ChiefDelphi post:
-   * https://www.chiefdelphi.com/t/enums-and-subsytem-states/463974/6
-   */
+/*
+* State machine states  
+*/
   private enum State {
     WAITING_FOR_L1_CORAL_IN_FUNNEL {
       @Override
       void onEnter(Manipulator subsystem) {
         // Set the voltage of all motors to the collection voltage.
-        subsystem.setManipulatorCoralMotor1Voltage(
+        subsystem.setLeftCoralMotorVoltage(
             Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
 
-        subsystem.setManipulatorCoralMotor2Voltage(
+        subsystem.setRightCoralMotorVoltage(
               Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
 
-        subsystem.setManipulatorAlgaeMotorVoltage(
+        subsystem.setAlgaeMotorVoltage(
                 Volts.of(subsystem.manipulatorAlgaeMotorCollectionVoltage.get()));
        
       }
@@ -434,16 +390,16 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
   }
 
   // Methods to the set the voltages of the motors; these methods will be called in the state machine states
-  private void setManipulatorCoralMotor1Voltage(Voltage volts){
-    io.setManipulatorVoltage(volts);
+  private void setLeftCoralMotorVoltage(Voltage volts){
+    io.setLeftCoralVoltage(volts);
   }
 
-  private void setManipulatorCoralMotor2Voltage(Voltage volts){
-    io.setManipulatorVoltage(volts);
+  private void setRightCoralMotorVoltage(Voltage volts){
+    io.setRightCoralVoltage(volts);
   }
 
-  private void setManipulatorAlgaeMotorVoltage(Voltage volts){
-    io.setManipulatorVoltage(volts);
+  private void setAlgaeMotorVoltage(Voltage volts){
+    io.setAlgaeVoltage(volts);
   }
 
   // The inputs class contains the state of the primary and secondary IR sensors. It is useful to
@@ -476,8 +432,6 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
   private boolean isManipulatorBackLeftBlocked(){ // algae sensor
     return inputs.isManipulatorBackLeftBlocked;
   }
-
-  private boolean is
 
   // A subsystem's system check command is used to verify the functionality of the subsystem. It
   // should perform a sequence of commands (usually encapsulated in another method). The command
