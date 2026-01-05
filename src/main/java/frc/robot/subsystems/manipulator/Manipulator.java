@@ -66,7 +66,7 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
 
   // Some state transitions are triggered by a timeout. Use Timer objects for that purpose.
   Timer inIndexingState = new Timer();
-  Timer ejectingTimer = new Timer();
+  //Timer ejectingTimer = new Timer();
   
   // Use a linear filter to detect when the game piece has stalled against the hard stop. We want to
   // use a filter to eliminate false positives due to current spikes that may occur when the motor
@@ -103,9 +103,6 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
 
         subsystem.setManipulatorCoralMotor2Voltage(
               Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
-
-        subsystem.setManipulatorAlgaeMotorVoltage(
-                Volts.of(subsystem.manipulatorAlgaeMotorCollectionVoltage.get()));
        
       }
 
@@ -145,9 +142,6 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
 
         subsystem.setManipulatorCoralMotor2Voltage(
             Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
-
-        subsystem.setManipulatorAlgaeMotorVoltage(
-            Volts.of(subsystem.manipulatorAlgaeCollectionVoltage.get()));
       }
       @Override
       void execute(Manipulator subsystem) {
@@ -172,8 +166,10 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
     CENTERING_CORAL_IN_MANIPULATOR_RIGHT {
       @Override
       void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(
-            Volts.of(subsystem.manipulatorCollectionVoltage.get()));
+        subsystem.setManipulatorCoralMotor1Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+        subsystem.setManipulatorCoralMotor2Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
 
         // If a state has a timeout, the timer must be restarted in the onEnter method.
         subsystem.inIndexingState.restart();
@@ -204,7 +200,7 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
           Volts.of(-subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
           subsystem.setManipulatorAlgaeMotorVoltage(
           Volts.of(subsystem.manipulatorAlgaeCollectionVoltage.get()));
-        } 
+        } //FIXME: Add logic to check if the piece has gone too far left or right and transition to the appropriate state to correct it.
         if(((subsystem.isManipulatorFrontCenterBlocked() && (subsystem.isManipulatorFrontRightBlocked() && 
            subsystem.isManipulatorFrontLeftBlocked())) || subsystem.isManipulatorBackCenterBlocked()) ) {
           subsystem.setState(State.CORAL_IN_MANIPULATOR_L1);
@@ -213,14 +209,14 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
       @Override
       void onExit(Manipulator subsystem) {}
     },
-
       
-
     CENTERING_CORAL_IN_MANIPULATOR_LEFT {
       @Override
       void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(
-            Volts.of(subsystem.manipulatorCollectionVoltage.get()));
+        subsystem.setManipulatorCoralMotor1Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+        subsystem.setManipulatorCoralMotor2Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
 
         // If a state has a timeout, the timer must be restarted in the onEnter method.
         subsystem.inIndexingState.restart();
@@ -248,9 +244,7 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
           Volts.of(-subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
           subsystem.setManipulatorCoralMotor2Voltage(
           Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
-          subsystem.setManipulatorAlgaeMotorVoltage(
-          Volts.of(-subsystem.manipulatorAlgaeCollectionVoltage.get()));
-        } 
+        } //FIXME: Add logic to check if the piece has gone too far left or right and transition to the appropriate state to correct it.
         if(((subsystem.isManipulatorFrontCenterBlocked() && (subsystem.isManipulatorFrontRightBlocked() && 
            subsystem.isManipulatorFrontLeftBlocked())) || subsystem.isManipulatorBackCenterBlocked()) ) {
           subsystem.setState(State.CORAL_IN_MANIPULATOR_L1);
@@ -264,20 +258,27 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
     INDEXING_CORAL_IN_MANIPULATOR_L2_4 {
       @Override
       void onEnter(Manipulator subsystem) {
-        
+        // Set the voltage of all motors to the collection voltage.
+        subsystem.setManipulatorCoralMotor1Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+
+        subsystem.setManipulatorCoralMotor2Voltage(
+              Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
+        // Start the timer to check for if coral gets stuck in this state.
+        inIndexingState.reset();
+        inIndexingState.start();
       }
 
       @Override
       void execute(Manipulator subsystem) {
-
+      if (subsystem.isManipulatorFrontCenterBlocked() && subsystem.isManipulatorBackCenterBlocked()) {
+          subsystem.setState(State.CORAL_IN_MANIPULATOR_L2_4);
       }
 
       @Override
       void onExit(Manipulator subsystem) {
-
       }
     },
-
 
     GAME_PIECE_STUCK {
       @Override
@@ -306,9 +307,41 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
     CORAL_IN_MANIPULATOR_L1 {
       @Override
       void onEnter(Manipulator subsystem) {
-        subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
+        subsystem.setManipulatorCoralMotor1Voltage(Volts.of(LEFT_CORAL_MOTOR_LOWER_VOLTAGE_LIMIT));
+        subsystem.setManipulatorCoralMotor2Voltage(Volts.of(RIGHT_CORAL_MOTOR_LOWER_VOLTAGE_LIMIT));
+
         // move "wrist" to scoring position
-        subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
+
+        //subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
+      } //Removing the wrist position for now since we don't care about algae.
+
+      @Override
+      void execute(Manipulator subsystem) {
+        LEDs.getInstance().requestState(States.HAS_GAME_PIECE);
+
+        // check if the release button has been pressed
+        if (subsystem.releaseButtonPressed) {
+          subsystem.setState(State.L1_PREPARE_TO_SCORE);
+          subsystem.releaseButtonPressed = false;
+        }
+        // check if the game piece is no longer detected by the manipulator; this could occur if
+        // it has dropped or knocked out; we don't want to be stuck in this state
+        else if (!subsystem.isManipulatorIRBlocked()) {
+          subsystem.setState(State.WAITING_FOR_L1_CORAL_IN_FUNNEL);
+        }
+      }
+
+      @Override
+      void onExit(Manipulator subsystem) {}
+    },
+  
+    CORAL_IN_MANIPULATOR_L2_4 {
+      @Override
+      void onEnter(Manipulator subsystem) {
+        subsystem.setManipulatorCoralMotor1Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+        subsystem.setManipulatorCoralMotor2Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
       }
 
       @Override
@@ -317,15 +350,67 @@ public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
 
         // check if the release button has been pressed
         if (subsystem.releaseButtonPressed) {
-          subsystem.setState(State.RELEASE_GAME_PIECE);
+          subsystem.setState(State.L1_PREPARE_TO_SCORE);
           subsystem.releaseButtonPressed = false;
         }
         // check if the game piece is no longer detected by the manipulator; this could occur if
         // it has dropped or knocked out; we don't want to be stuck in this state
         else if (!subsystem.isManipulatorIRBlocked()) {
-          subsystem.setState(State.WAITING_FOR_GAME_PIECE);
+          subsystem.setState(State.WAITING_FOR_L2_4_CORAL_IN_FUNNEL);
         }
       }
+
+      L1_PREPARE_TO_SCORE {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
+          // move "wrist" to scoring position
+          //subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
+        }
+
+        @Override
+        void execute(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.HAS_GAME_PIECE);
+
+          // check if the release button has been pressed
+          if (subsystem.releaseButtonPressed) {
+            subsystem.setState(State.RELEASE_GAME_PIECE);
+            subsystem.releaseButtonPressed = false;
+          }
+          // check if the game piece is no longer detected by the manipulator; this could occur if
+          // it has dropped or knocked out; we don't want to be stuck in this state
+          else if (!subsystem.isManipulatorIRBlocked()) {
+            subsystem.setState(State.WAITING_FOR_L1_CORAL_IN_FUNNEL);
+          }
+        }
+
+      @Override
+      void onExit(Manipulator subsystem) {}
+    },
+
+    L2_4_PREPARE_TO_SCORE {
+        @Override
+        void onEnter(Manipulator subsystem) {
+          subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
+          // move "wrist" to scoring position
+          //subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
+        }
+
+        @Override
+        void execute(Manipulator subsystem) {
+          LEDs.getInstance().requestState(States.HAS_GAME_PIECE);
+
+          // check if the release button has been pressed
+          if (subsystem.releaseButtonPressed) {
+            subsystem.setState(State.RELEASE_GAME_PIECE);
+            subsystem.releaseButtonPressed = false;
+          }
+          // check if the game piece is no longer detected by the manipulator; this could occur if
+          // it has dropped or knocked out; we don't want to be stuck in this state
+          else if (!subsystem.isManipulatorIRBlocked()) {
+            subsystem.setState(State.WAITING_FOR_L2_4_CORAL_IN_FUNNEL);
+          }
+        }
 
       @Override
       void onExit(Manipulator subsystem) {}
