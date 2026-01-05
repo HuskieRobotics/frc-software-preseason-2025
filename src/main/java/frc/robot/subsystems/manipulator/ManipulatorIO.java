@@ -11,6 +11,9 @@ public interface ManipulatorIO {
 
     //This is recording the values of the left, right, and coral motors
 
+    //angle for "wrist position"
+    double algaeMotorAngleDeg = 0;
+
     //stator
     double leftCoralMotorStatorCurrentAmps = 0;
     double rightCoralMotorStatorCurrentAmps = 0;
@@ -54,5 +57,7 @@ public interface ManipulatorIO {
   public default void setRightCoralVoltage(Voltage volts) {}
 
   public default void setAlgaeVoltage(Voltage volts) {}
+
+  public default void setAlgaeAngle(Angle deg) {
 
 }

@@ -232,6 +232,23 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     algaeMotor.setControl(algaeVoltageRequest.withOutput(volts));
   }
 
+  @Override
+  public void setAlgaeMotorPosition(Angle deg) {
+    try {
+      // Convert requested angle to motor rotations using the Units helper.
+      double targetRotations = deg.getValue().in(edu.wpi.first.units.Units.Rotations);
+
+      // Use Phoenix 6 position control (fully-qualified to avoid adding imports here).
+      com.ctre.phoenix6.controls.Position positionControl =
+        new com.ctre.phoenix6.controls.Position(targetRotations);
+
+      algaeMotor.setControl(positionControl);
+    } catch (Throwable t) {
+      // If position control isn't available or an error occurs, safely stop the motor.
+      algaeMotor.setControl(new VoltageOut(0.0));
+    }
+  }
+
   private void configBothCoralMotors(TalonFX leftMotor, TalonFX rightMotor) {
     // create the config objects for the left and right motors
     TalonFXConfiguration leftConfig = new TalonFXConfiguration();

@@ -1,6 +1,8 @@
 package frc.robot.subsystems.manipulator;
+
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.manipulator.ManipulatorConstants.*;
+
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -16,6 +18,7 @@ import frc.lib.team6328.util.LoggedTunableNumber;
 import frc.robot.operator_interface.OISelector;
 import org.littletonrobotics.junction.Logger;
 
+
 public class Manipulator extends SubsystemBase {
 
   // all subsystems receive a reference to their IO implementation when constructed
@@ -24,44 +27,37 @@ public class Manipulator extends SubsystemBase {
   // all subsystems create the AutoLogged version of their IO inputs class
   private final ManipulatorIOInputsAutoLogged inputs = new ManipulatorIOInputsAutoLogged();
 
-  // When initially testing a mechanism, it is best to manually provide a voltage or current to
-  // verify the mechanical functionality. At times, this can be done via Phoenix Tuner. However,
-  // when multiple motors are involved, that is not possible. Using a tunables to enable testing
-  // mode and, for the manipulator, specifying voltage is convenient. This feature is also an
-  // efficient approach when, for example, empirically tuning the voltage to optimize performance
-  // when collecting a game piece.
-
-  // left coral motor Tunable Numbers
+  // Coral Motor 1 (for blue and green wheels) Tunable Numbers
   private final LoggedTunableNumber testingMode =
       new LoggedTunableNumber("Manipulator/TestingMode", 0);
-  private final LoggedTunableNumber LeftCoralMotorVoltage =
+  private final LoggedTunableNumber manipulatorCoralMotor1Voltage =
       new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
-  public final LoggedTunableNumber LeftCoralMotorCollectionVoltage =
-      new LoggedTunableNumber("Manipulator/CollectionVoltage", LEFT_CORAL_MOTOR_COLLECTION_VOLTAGE);
-  public final LoggedTunableNumber LeftCoralMotorReleaseVoltage =
-      new LoggedTunableNumber("Manipulator/ReleaseVoltage", LEFT_CORAL_MOTOR_RELEASE_VOLTAGE);
-  public final LoggedTunableNumber LeftCoralMotorEjectVoltage =
-      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", LEFT_CORAL_MOTOR_EJECT_VOLTAGE);
-  
-  // right coral motor Tunable Numbers
-private final LoggedTunableNumber RightCoralMotorVoltage =
-  new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
-public final LoggedTunableNumber RightCoralMotorCollectionVoltage =
-  new LoggedTunableNumber("Manipulator/CollectionVoltage", RIGHT_CORAL_MOTOR_COLLECTION_VOLTAGE);
-public final LoggedTunableNumber RightCoralMotorReleaseVoltage =
-  new LoggedTunableNumber("Manipulator/ReleaseVoltage", RIGHT_CORAL_MOTOR_RELEASE_VOLTAGE);
-public final LoggedTunableNumber RightCoralMotorEjectVoltage =
-  new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", RIGHT_CORAL_MOTOR_EJECT_VOLTAGE);
+  public final LoggedTunableNumber manipulatorCoralMotor1CollectionVoltage =
+      new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
+  public final LoggedTunableNumber manipulatorCoralMotor1ReleaseVoltage =
+      new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
+  public final LoggedTunableNumber manipulatorCoralMotor1EjectVoltage =
+      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
 
-// Algae Motor (black rollers) Tunable Numbers
-  private final LoggedTunableNumber AlgaeMotorVoltage =
+  // Coral Motor 2 (for blue and green rollers) Tunable Numbers
+private final LoggedTunableNumber manipulatorCoralMotor2Voltage =
+  new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
+public final LoggedTunableNumber manipulatorCoralMotor2CollectionVoltage =
+  new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
+public final LoggedTunableNumber manipulatorCoralMotor2ReleaseVoltage =
+  new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
+public final LoggedTunableNumber manipulatorCoralMotor2EjectVoltage =
+  new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
+
+// Algae Motor (black rollers) Tunable Numbers;
+  private final LoggedTunableNumber manipulatorAlgaeMotorVoltage =
       new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
-  public final LoggedTunableNumber AlgaeCollectionVoltage =
-      new LoggedTunableNumber("Manipulator/CollectionVoltage", ALGAE_MOTOR_COLLECTION_VOLTAGE);
-  public final LoggedTunableNumber AlgaeReleaseVoltage =
-      new LoggedTunableNumber("Manipulator/ReleaseVoltage", ALGAE_MOTOR_RELEASE_VOLTAGE);
-  public final LoggedTunableNumber AlgaeEjectVoltage =
-      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", ALGAE_MOTOR_EJECT_VOLTAGE);
+  public final LoggedTunableNumber manipulatorAlgaeCollectionVoltage =
+      new LoggedTunableNumber("Manipulator/CollectionVoltage", MANIPULATOR_COLLECTION_VOLTAGE);
+  public final LoggedTunableNumber manipulatorAlgaeReleaseVoltage =
+      new LoggedTunableNumber("Manipulator/ReleaseVoltage", MANIPULATOR_RELEASE_VOLTAGE);
+  public final LoggedTunableNumber manipulatorAlgaeEjectVoltage =
+      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", MANIPULATOR_EJECT_VOLTAGE);
 
   // Initialize the last state to the uninitialized state and the current state to the desired
   // initial state to ensure that the onEnter method is invoked when the subsystem in constructed.
@@ -93,21 +89,22 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
     FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getSystemCheckCommand());
   }
 
-/*
-* State machine states  
-*/
+  /*
+  * State machine states  
+  */
+
   private enum State {
     WAITING_FOR_L1_CORAL_IN_FUNNEL {
       @Override
       void onEnter(Manipulator subsystem) {
         // Set the voltage of all motors to the collection voltage.
-        subsystem.setLeftCoralMotorVoltage(
+        subsystem.setManipulatorCoralMotor1Voltage(
             Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
 
-        subsystem.setRightCoralMotorVoltage(
+        subsystem.setManipulatorCoralMotor2Voltage(
               Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
 
-        subsystem.setAlgaeMotorVoltage(
+        subsystem.setManipulatorAlgaeMotorVoltage(
                 Volts.of(subsystem.manipulatorAlgaeMotorCollectionVoltage.get()));
        
       }
@@ -120,11 +117,18 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
         // Often preloading a game piece requires a special case state transition.
         if (DriverStation.isDisabled() && (subsystem.isManipulatorFrontLeftBlocked() && subsystem.isManipulatorFrontCenterBlocked() && 
         subsystem.isManipulatorFrontRightBlocked() && subsystem.isManipulatorBackCenterBlocked()) ) {
-          subsystem.setState(State.CORAL_IN_MANIPULATOR_L1);
+          subsystem.setState(State.CORAL_IN_MANIPULATOR_L2);
         } // check if the game piece is detected by the manipulator
         else if (subsystem.isManipulatorFrontLeftBlocked() || subsystem.isManipulatorFrontCenterBlocked() || 
-                 subsystem.isManipulatorFrontRightBlocked() || subsystem.isManipulatorBackCenterBlocked()) {
-          subsystem.setState(State.CENTERING_CORAL_IN_MANIPULATOR_L1); // FIXME: enumerate all the methods in the else if block above.
+        subsystem.isManipulatorFrontRightBlocked() || subsystem.isManipulatorBackCenterBlocked()){ 
+          // FIXME: enumerate all the methods in the else if block.
+          if(subsystem.isManipulatorFrontLeftBlocked() && !subsystem.isManipulatorFrontRightBlocked()){
+            subsystem.setState(State.CENTERING_CORAL_RIGHT);
+          } else if(subsystem.isManipulatorFrontRightBlocked() && !subsystem.isManipulatorFrontLeftBlocked()) {
+            subsystem.setState(State.CENTERING_CORAL_LEFT); 
+          } else {
+          break; // stay in the current state
+          }
         }
       }
 
@@ -132,7 +136,40 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
       void onExit(Manipulator subsystem) {}
     },
 
-    CENTERING_CORAL_IN_MANIPULATOR_L1 {
+    WAITING_FOR_L2_4_CORAL_IN_FUNNEL {
+      @Override
+      void onEnter(Manipulator subsystem) {
+        // Set the voltage of all motors to the collection voltage.
+        subsystem.setManipulatorCoralMotor1Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+
+        subsystem.setManipulatorCoralMotor2Voltage(
+            Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
+
+        subsystem.setManipulatorAlgaeMotorVoltage(
+            Volts.of(subsystem.manipulatorAlgaeCollectionVoltage.get()));
+      }
+      @Override
+      void execute(Manipulator subsystem) {
+
+        // Often preloading a game piece requires a special case state transition.
+        if (DriverStation.isDisabled() && (subsystem.isManipulatorFrontLeftBlocked() && subsystem.isManipulatorFrontCenterBlocked() && 
+        subsystem.isManipulatorFrontRightBlocked() && subsystem.isManipulatorBackCenterBlocked()) ) {
+          subsystem.setState(State.CORAL_IN_MANIPULATOR_L2_4);
+        } // check if the game piece is detected by the manipulator
+
+
+        else if (subsystem.isManipulatorFrontLeftBlocked() || subsystem.isManipulatorFrontCenterBlocked() || 
+        subsystem.isManipulatorFrontRightBlocked() || subsystem.isManipulatorBackCenterBlocked()){ 
+          // FIXME: enumerate all the methods in the else if block.
+          subsystem.setState(State.INDEXING_CORAL_IN_MANIPULATOR_L2_4);
+        }
+      }
+
+      void onExit(Manipulator subsystem) {}
+    },
+
+    CENTERING_CORAL_IN_MANIPULATOR_RIGHT {
       @Override
       void onEnter(Manipulator subsystem) {
         subsystem.setManipulatorMotorVoltage(
@@ -150,16 +187,6 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
 
         LEDs.getInstance().requestState(States.INDEXING_GAME_PIECE);
 
-        /* This logic under is not needed as we will not be using hard stop detection—we will just use
-        sensor detection instead.
-
-        // check if the game piece has stalled against the hard stop
-        if (subsystem.isManipulatorIRBlocked()
-            && subsystem.currentInAmps.lastValue() > COLLECTION_CURRENT_SPIKE_THRESHOLD) {
-          subsystem.setState(State.GAME_PIECE_IN_MANIPULATOR);
-        }
-        */
-
         // check if the timeout has elapsed which indicates that the game piece may be stuck
         else if (subsystem.inIndexingState.hasElapsed(COLLECTION_TIME_OUT)) {
           ejectGamePiece();
@@ -171,34 +198,61 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
         if (subsystem.isManipulatorFrontLeftBlocked() && !subsystem.isManipulatorFrontRightBlocked()) {
           // move piece right: run left-side rollers forward and right-side rollers (or opposing rollers)
           // slightly in reverse to bias the piece toward the right.
-          // The constants are to slow the impact of the coral onto the manipulator walls.
           subsystem.setManipulatorCoralMotor1Voltage(
           Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
           subsystem.setManipulatorCoralMotor2Voltage(
-          Volts.of(-subsystem.manipulatorCoralMotor2CollectionVoltage.get() "* 0.6"));
-          subsystem.setManipulatorAlgaeMotorVoltage(
-          Volts.of(subsystem.manipulatorAlgaeCollectionVoltage.get() "* 0.8"));
-        } else if (subsystem.isManipulatorFrontRightBlocked() && !subsystem.isManipulatorFrontLeftBlocked()) {
-          // move piece left: reverse of above
-          subsystem.setManipulatorCoralMotor1Voltage(
-          Volts.of(-subsystem.manipulatorCoralMotor1CollectionVoltage.get() "* 0.6"));
-          subsystem.setManipulatorCoralMotor2Voltage(
-          Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
-          subsystem.setManipulatorAlgaeMotorVoltage(
-          Volts.of(-subsystem.manipulatorAlgaeCollectionVoltage.get() "* 0.8"));
-        } else {
-          // Default: continue normal collection voltages
-          subsystem.setManipulatorCoralMotor1Voltage(
-          Volts.of(subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
-          subsystem.setManipulatorCoralMotor2Voltage(
-          Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
+          Volts.of(-subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
           subsystem.setManipulatorAlgaeMotorVoltage(
           Volts.of(subsystem.manipulatorAlgaeCollectionVoltage.get()));
-          // This might be a place where we can shift back to WAITING_FOR_L1_CORAL_IN_FUNNEL state if no sensors are blocked.
+        } 
+        if(((subsystem.isManipulatorFrontCenterBlocked() && (subsystem.isManipulatorFrontRightBlocked() && 
+           subsystem.isManipulatorFrontLeftBlocked())) || subsystem.isManipulatorBackCenterBlocked()) ) {
+          subsystem.setState(State.CORAL_IN_MANIPULATOR_L1);
+        }
+        }
+      @Override
+      void onExit(Manipulator subsystem) {}
+    },
+
+      
+
+    CENTERING_CORAL_IN_MANIPULATOR_LEFT {
+      @Override
+      void onEnter(Manipulator subsystem) {
+        subsystem.setManipulatorMotorVoltage(
+            Volts.of(subsystem.manipulatorCollectionVoltage.get()));
+
+        // If a state has a timeout, the timer must be restarted in the onEnter method.
+        subsystem.inIndexingState.restart();
+
+        // If a state has a filter, the filter must be reset in the onEnter method.
+        subsystem.currentInAmps.reset();
+      }
+
+      @Override
+      void execute(Manipulator subsystem) {
+
+        LEDs.getInstance().requestState(States.INDEXING_GAME_PIECE);
+
+        // check if the timeout has elapsed which indicates that the game piece may be stuck
+        else if (subsystem.inIndexingState.hasElapsed(COLLECTION_TIME_OUT)) {
+          ejectGamePiece();
+          subsystem.setState(GAME_PIECE_STUCK);
         }
 
+        // Centering logic: nudge piece left or right depending on which front sensor is triggered.
+        // If only the left sensor is triggered, nudge the piece to the right and vice versa.
+        if (subsystem.isManipulatorFrontRightBlocked() && !subsystem.isManipulatorFrontLeftBlocked()) {
+          // move piece left: reverse of above
+          subsystem.setManipulatorCoralMotor1Voltage(
+          Volts.of(-subsystem.manipulatorCoralMotor1CollectionVoltage.get()));
+          subsystem.setManipulatorCoralMotor2Voltage(
+          Volts.of(subsystem.manipulatorCoralMotor2CollectionVoltage.get()));
+          subsystem.setManipulatorAlgaeMotorVoltage(
+          Volts.of(-subsystem.manipulatorAlgaeCollectionVoltage.get()));
+        } 
         if(((subsystem.isManipulatorFrontCenterBlocked() && (subsystem.isManipulatorFrontRightBlocked() && 
-           subsystem.isManipulatorFrontLeftBlocked())) || subsystem.isManipulatorBackCenterBlocked()) ){
+           subsystem.isManipulatorFrontLeftBlocked())) || subsystem.isManipulatorBackCenterBlocked()) ) {
           subsystem.setState(State.CORAL_IN_MANIPULATOR_L1);
         }
       }
@@ -206,6 +260,24 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
       @Override
       void onExit(Manipulator subsystem) {}
     },
+
+    INDEXING_CORAL_IN_MANIPULATOR_L2_4 {
+      @Override
+      void onEnter(Manipulator subsystem) {
+        
+      }
+
+      @Override
+      void execute(Manipulator subsystem) {
+
+      }
+
+      @Override
+      void onExit(Manipulator subsystem) {
+
+      }
+    },
+
 
     GAME_PIECE_STUCK {
       @Override
@@ -235,6 +307,8 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
       @Override
       void onEnter(Manipulator subsystem) {
         subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
+        // move "wrist" to scoring position
+        subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
       }
 
       @Override
@@ -390,16 +464,21 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
   }
 
   // Methods to the set the voltages of the motors; these methods will be called in the state machine states
-  private void setLeftCoralMotorVoltage(Voltage volts){
-    io.setLeftCoralVoltage(volts);
+  private void setManipulatorCoralMotor1Voltage(Voltage volts){
+    io.setManipulatorVoltage(volts);
   }
 
-  private void setRightCoralMotorVoltage(Voltage volts){
-    io.setRightCoralVoltage(volts);
+  private void setManipulatorCoralMotor2Voltage(Voltage volts){
+    io.setManipulatorVoltage(volts);
   }
 
-  private void setAlgaeMotorVoltage(Voltage volts){
-    io.setAlgaeVoltage(volts);
+  private void setManipulatorAlgaeMotorVoltage(Voltage volts){
+    io.setManipulatorVoltage(volts);
+  }
+
+  // Method to change the angle of the "wrist postion" motor
+  public void setAlgaeMotorPosition(Angle deg){ 
+    io.setAlgaeAngle(deg); 
   }
 
   // The inputs class contains the state of the primary and secondary IR sensors. It is useful to
@@ -432,6 +511,8 @@ public final LoggedTunableNumber RightCoralMotorEjectVoltage =
   private boolean isManipulatorBackLeftBlocked(){ // algae sensor
     return inputs.isManipulatorBackLeftBlocked;
   }
+
+  private boolean is
 
   // A subsystem's system check command is used to verify the functionality of the subsystem. It
   // should perform a sequence of commands (usually encapsulated in another method). The command
