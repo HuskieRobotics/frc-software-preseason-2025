@@ -52,12 +52,12 @@ public interface ManipulatorIO {
 
   public default void updateInputs(ManipulatorIOInputs inputs) {}
 
-  public default void setLeftCoralVoltage(Voltage volts) {}
+  public default void setLeftCoralMotorVoltage(Voltage volts) {}
 
-  public default void setRightCoralVoltage(Voltage volts) {}
+  public default void setRightCoralMotorVoltage(Voltage volts) {}
 
-  public default void setAlgaeVoltage(Voltage volts) {}
+  public default void setAlgaeMotorVoltage(Voltage volts) {}
 
-  public default void setAlgaeAngle(Angle deg) {
+  public default void setAlgaeAngle(Angle deg) {}
 
-}
+  }
