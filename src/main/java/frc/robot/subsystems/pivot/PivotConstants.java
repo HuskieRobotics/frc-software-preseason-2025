@@ -6,8 +6,8 @@ public class PivotConstants {
 
   public static final int PIVOT_LEAD_MOTOR_ID = 80; // FIXME: Update value
   public static final int PIVOT_FOLLOWER_SAME_SIDE_ID = 81; // FIXME: Update value
-  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID = 83; // FIXME: Update value
-  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID_2 = 84; // FIXME: Update value
+  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID = 82; // FIXME: Update value
+  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID_2 = 83; // FIXME: Update value
 
   // FIXME: This could be 100 instead, but based on design document setting to this
   public static final double ANGLE_MOTOR_GEAR_RATIO = 123.45679; // FIXME: Update value
