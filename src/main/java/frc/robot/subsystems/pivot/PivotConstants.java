@@ -4,10 +4,10 @@ public class PivotConstants {
 
   public static final String SUBSYSTEM_NAME = "Pivot";
 
-  public static final int PIVOT_LEAD_MOTOR_ID = 80;
-  public static final int PIVOT_FOLLOWER_SAME_SIDE_ID = 81;
-  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID = 83;
-  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID_2 = 84;
+  public static final int PIVOT_LEAD_MOTOR_ID = 80; // FIXME: Update value
+  public static final int PIVOT_FOLLOWER_SAME_SIDE_ID = 81; // FIXME: Update value
+  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID = 82; // FIXME: Update value
+  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID_2 = 83; // FIXME: Update value
 
   public static final double ANGLE_MOTOR_GEAR_RATIO = 123.45679;
   public static final int SENSOR_TO_MECHANISM_RATIO = 1; // FIXME: Update value
