@@ -32,15 +32,17 @@ public interface PivotIO {
     double followerOppositeSideSupplyCurrentAmps = 0.0;
     double followerOppositeSide2SupplyCurrentAmps = 0.0;
 
-    double closedLoopError = 0.0;
-    double closedLoopReference = 0.0;
+    // degrees
+    double closedLoopErrorDegrees = 0.0;
+    double closedLoopReferenceDegrees = 0.0;
+    double angleDegrees = 0.0;
+    double angleMotorReferenceAngleDegrees = 0.0;
 
     // temperature
     double leadTempCelsius = 0.0;
     double followerSameSideTempCelsius = 0.0;
     double followerOppositeSideTempCelsius = 0.0;
     double followerOppositeSide2TempCelsius = 0.0;
-    double angleDegrees = 0.0;
 
     // connections
 
@@ -55,5 +57,6 @@ public interface PivotIO {
   public default void setAngle(Angle angle) {}
 
   public default void updateInputs(PivotIOInputs inputs) {}
-  // public Object setAngleMotorVoltage(double in);
+
+  // public Object setAngleMotorVoltage(double in) {}
 }

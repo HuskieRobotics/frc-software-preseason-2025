@@ -64,6 +64,6 @@ public class Pivot extends SubsystemBase {
   }
 
   public Angle getPositionAngle() {
-    return Degrees.of(inputs.angleDegrees); // FIXME: We think we fixed this but not sure yet
+    return Degrees.of(inputs.angleDegrees);
   }
 }
