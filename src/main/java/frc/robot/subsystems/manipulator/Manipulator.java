@@ -234,12 +234,8 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
 
         // Centering logic: nudge piece left or right depending on which front sensor is triggered.
         // If only the left sensor is triggered, nudge the piece to the right and vice versa.
-        if (subsystem.isManipulatorFrontRightBlocked() && !subsystem.isManipulatorFrontLeftBlocked()) {
-          // move piece left: reverse of above
-          subsystem.setLeftCoralMotorVoltage(
-          Volts.of(-subsystem.leftCoralMotorCollectionVoltage.get()));
-          subsystem.setRightCoralMotorVoltage(
-          Volts.of(subsystem.rightCoralMotorCollectionVoltage.get()));
+        if (!subsystem.isManipulatorFrontRightBlocked() && subsystem.isManipulatorFrontLeftBlocked()) {
+          subsystem.setState(State.CENTERING_CORAL_IN_MANIPULATOR_RIGHT);
         } //FIXME: Add logic to check if the piece has gone too far left or right and transition to the appropriate state to correct it.
         if(((subsystem.isManipulatorFrontCenterBlocked() && (subsystem.isManipulatorFrontRightBlocked() && 
            subsystem.isManipulatorFrontLeftBlocked())) || subsystem.isManipulatorBackCenterBlocked()) ) {

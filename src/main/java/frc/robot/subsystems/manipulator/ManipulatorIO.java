@@ -58,6 +58,4 @@ public interface ManipulatorIO {
 
   public default void setAlgaeMotorVoltage(Voltage volts) {}
 
-  public default void setAlgaeAngle(Angle deg) {}
-
   }
