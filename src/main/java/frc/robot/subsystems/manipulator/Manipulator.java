@@ -328,7 +328,7 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       @Override
       void onExit(Manipulator subsystem) {}
     },
-  
+
     CORAL_IN_MANIPULATOR_L2_4 {
       @Override
       void onEnter(Manipulator subsystem) {
@@ -354,9 +354,13 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
         }
       }
 
+      @Override
+      void onExit(Manipulator subsystem) {}
+    },
+
       L1_PREPARE_TO_SCORE {
         @Override
-        void onEnter(Manipulator subsystem) {
+        public void onEnter(Manipulator subsystem) {
           subsystem.setManipulatorMotorVoltage(Volts.of(0.0));
           // move "wrist" to scoring position
           //subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
@@ -508,23 +512,15 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
   }
 
   public boolean isIndexingCoralL2_L4(){
-    return state == State. ; //FIXME: replace with the state for indexing coral l2-l4
-  }
-
-  public boolean isIndexingAlgae(){
-    return state == State. //FIXME: replace with necessary state
+    return state == State.INDEXING_CORAL_IN_MANIPULATOR_L2_4 ; //FIXME: replace with the state for indexing coral l2-l4
   }
 
   public boolean hasIndexedCoralL1() { 
-    return state == State.GAME_PIECE_IN_MANIPULATOR;
+    return state == State.CORAL_IN_MANIPULATOR_L1;
   }
 
   public boolean hasIndexedCoralL2_L4(){
-    return state == State. //FIXME: replace with necessary state
-  }
-
-  public boolean hasIndexedAlgae(){
-    return state == State. //FIXME: replace with necessary state
+    return state == State.L2_4_PREPARE_TO_SCORE ; //FIXME: replace with necessary state
   }
 
   private void setState(State state) {
@@ -590,8 +586,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
   private boolean isManipulatorBackLeftBlocked(){ // algae sensor
     return inputs.isManipulatorBackLeftBlocked;
   }
-
-  private boolean is
 
   // A subsystem's system check command is used to verify the functionality of the subsystem. It
   // should perform a sequence of commands (usually encapsulated in another method). The command
