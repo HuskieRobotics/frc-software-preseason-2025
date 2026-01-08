@@ -14,6 +14,7 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
+import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
@@ -271,7 +272,6 @@ public class PivotIOTalonFX implements PivotIO {
           config.Slot0.kV = motionMagic[4];
           config.Slot0.kA = motionMagic[5];
           config.Slot0.kG = motionMagic[6];
-
           config.MotionMagic.MotionMagicExpo_kV = motionMagic[7];
           config.MotionMagic.MotionMagicExpo_kA = motionMagic[8];
 
@@ -285,8 +285,7 @@ public class PivotIOTalonFX implements PivotIO {
         kA,
         kG,
         kVExpo,
-        kAExpo /*,
-               cruiseVelocity*/);
+        kAExpo);
 
     if (encoderOffset.hasChanged(hashCode())) {
       CANcoderConfiguration config = new CANcoderConfiguration();
@@ -326,6 +325,20 @@ public class PivotIOTalonFX implements PivotIO {
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.CurrentLimits.StatorCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
+
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake; //FIXME: Not sure if needed
+    config.Slot0.kP = kP.get();
+    config.Slot0.kI = kI.get();
+    config.Slot0.kD = kD.get();
+    config.Slot0.kS = kS.get();
+    config.Slot0.kV = kV.get();
+    config.Slot0.kA = kA.get();
+    config.Slot0.kG = kG.get();
+    config.Slot0.withGravityType(GravityTypeValue.Arm_Cosine);
+
+    config.MotionMagic.MotionMagicExpo_kV = kVExpo.get();
+    config.MotionMagic.MotionMagicExpo_kA = kAExpo.get();
+
 
     config.MotorOutput.Inverted =
         ANGLE_MOTOR_INVERTED
