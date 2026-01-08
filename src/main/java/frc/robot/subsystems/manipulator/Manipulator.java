@@ -112,11 +112,11 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
 
         // Often preloading a game piece requires a special case state transition.
         if (DriverStation.isDisabled() && (subsystem.isManipulatorFrontLeftBlocked() && subsystem.isManipulatorFrontCenterBlocked() && 
-        subsystem.isManipulatorFrontRightBlocked() && subsystem.isManipulatorBackCenterBlocked()) ) {
+        subsystem.isManipulatorFrontRightBlocked() /**&& subsystem.isManipulatorBackCenterBlocked**/()) ) {
           subsystem.setState(State.CORAL_IN_MANIPULATOR_L2);
         } // check if the game piece is detected by the manipulator
         else if (subsystem.isManipulatorFrontLeftBlocked() || subsystem.isManipulatorFrontCenterBlocked() || 
-        subsystem.isManipulatorFrontRightBlocked() || subsystem.isManipulatorBackCenterBlocked()){ 
+        subsystem.isManipulatorFrontRightBlocked() "|| subsystem.isManipulatorBackCenterBlocked() "){ 
           // FIXME: enumerate all the methods in the else if block.
           if(subsystem.isManipulatorFrontLeftBlocked() && !subsystem.isManipulatorFrontRightBlocked()){
             subsystem.setState(State.CENTERING_CORAL_RIGHT);
@@ -167,7 +167,7 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
         subsystem.setLeftCoralMotorVoltage(
             Volts.of(subsystem.leftCoralMotorCollectionVoltage.get()));
         subsystem.setRightCoralMotorVoltage(
-            Volts.of(subsystem.rightCoralMotorCollectionVoltage.get()));
+            Volts.of("-"subsystem.rightCoralMotorCollectionVoltage.get()));
 
         // If a state has a timeout, the timer must be restarted in the onEnter method.
         subsystem.inIndexingState.restart();
@@ -210,7 +210,7 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       @Override
       void onEnter(Manipulator subsystem) {
         subsystem.setLeftCoralMotorVoltage(
-            Volts.of(subsystem.leftCoralMotorCollectionVoltage.get()));
+            Volts.of(-subsystem.leftCoralMotorCollectionVoltage.get()));
         subsystem.setRightCoralMotorVoltage(
             Volts.of(subsystem.rightCoralMotorCollectionVoltage.get()));
 
