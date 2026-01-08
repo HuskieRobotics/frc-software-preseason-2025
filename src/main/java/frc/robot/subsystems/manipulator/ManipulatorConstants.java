@@ -68,4 +68,9 @@ public class ManipulatorConstants {
   // general manipulator current limits -- was previously here
   public static final double MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT = 40;
   public static final double COLLECTION_CURRENT_SPIKE_THRESHOLD = 35.0;
+
+  // supply and stator current limits for algae motor
+  public static final double ALGAE_MOTOR_SUPPLY_CURRENT_LIMIT = 30;
+  public static final double ALGAE_MOTOR_SUPPLY_CURRENT_LOWER_LIMIT = 40;
+  public static final double ALGAE_MOTOR_STATOR_CURRENT_LIMIT = 40;
 }

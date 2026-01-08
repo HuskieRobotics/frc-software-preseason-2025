@@ -26,8 +26,6 @@ import frc.lib.team3015.subsystem.FaultReporter;
 import frc.lib.team3061.RobotConfig;
 
 public class ManipulatorIOTalonFX implements ManipulatorIO {
-  // This mechanism has no close loop control; we just set the voltage directly.
-  private VoltageOut indexerVoltageRequest;
 
   private TalonFX leftCoralMotor;
   private TalonFX rightCoralMotor;
@@ -39,7 +37,7 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
   private VoltageOut algaeVoltageRequest;
 
   // import for the canrange sensors
-  private final CANBus kCANBus = new CANBus("rio");
+  private final CANBus kCANBus = new CANBus("rio"); //FIXME: come back to this later
 
   // declarations for the canrange sensors below
   private final CANrange frontLeft;
@@ -160,11 +158,11 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
         leftCoralMotor, LEFT_CORAL_MOTOR_INVERTED, "left coral motor", leftCoralMotorAlert);
     configCoralMotor(
         rightCoralMotor, RIGHT_CORAL_MOTOR_INVERTED, "right coral motor", rightCoralMotorAlert);
-    configAlgaeMotor(algaeMotor);
-    configCANRange(frontLeft, frontLeftAlert);
-    configCANRange(frontCenter, frontCenterAlert);
-    configCANRange(frontRight, frontRightAlert);
-    configCANRange(backCenter, backCenterAlert);
+    configAlgaeMotor(algaeMotor, algaeMotorAlert);
+    configCANRange(frontLeft, frontLeftAlert, "front left");
+    configCANRange(frontCenter, frontCenterAlert, "front center");
+    configCANRange(frontRight, frontRightAlert, "front right");
+    configCANRange(backCenter, backCenterAlert, "back center");
   }
 
   /**
@@ -276,17 +274,17 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, motorLabel, motor);
   }
 
-  private void configAlgaeMotor(TalonFX motor) {
+  private void configAlgaeMotor(TalonFX motor, Alert algaeMotorAlert) {
     TalonFXConfiguration config = new TalonFXConfiguration();
 
-    config.CurrentLimits.SupplyCurrentLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
-    config.CurrentLimits.SupplyCurrentLowerLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLimit = ALGAE_MOTOR_SUPPLY_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLowerLimit = ALGAE_MOTOR_SUPPLY_CURRENT_LOWER_LIMIT;
     config.CurrentLimits.SupplyCurrentLowerTime = 0;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
-    config.CurrentLimits.StatorCurrentLimit = MANIPULATOR_MOTOR_PEAK_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimit = ALGAE_MOTOR_STATOR_CURRENT_LIMIT;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
 
-    config.Feedback.SensorToMechanismRatio = MANIPULATOR_GEAR_RATIO;
+    config.Feedback.SensorToMechanismRatio = ALGAE_MOTOR_GEAR_RATIO;
 
     config.MotorOutput.Inverted =
         ALGAE_MOTOR_INVERTED
@@ -297,11 +295,27 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
     // It is critical that devices are successfully configured. The applyAndCheckConfiguration
     // method will apply the configuration, read back the configuration, and ensure that it is
     // correct. If not, it will reattempt five times and eventually, generate an alert.
-    Phoenix6Util.applyAndCheckConfiguration(motor, config, manipulatorConfigAlert);
+    Phoenix6Util.applyAndCheckConfiguration(motor, config, algaeMotorAlert);
 
     // A subsystem needs to register each device with FaultReporter. FaultReporter will check
     // devices for faults periodically when the robot is disabled and generate alerts if any faults
     // are found.
     FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, "Algae motor", motor);
+  }
+
+  private void configCANRange(CANrange sensor, Alert alert, String sensorLabel) {
+    CANrangeConfiguration config = new CANrangeConfiguration();
+
+    config.ProximityParams.MinSignalStrengthForValidMeasurement = new LoggedTunableNumber(); // Determines the least amount of signal needed for a valid measurement. Will be a tunable number as this number while be determine by tuning.
+    config.ProximityParams.ProximityThreshold = new LoggedTunableNumber(); // If an object is detected within a certain proximity, the sensor will report that an object (game piece) is present. This number will be determined by tuning and thus is a tunable number.
+
+    config.ToFParams.UpdateMode = UpdateModeValue.ShortRange100Hz; // Want the sensor to be short range so it can accurately detect if there is a coral or not, and more specifically where it is.
+
+    canRange.getConfigurator().apply(config);
+   
+  FaultReporter.getInstance().registerHardware(SUBSYSTEM_NAME, sensorLabel, sensor);
+
+  // Make sure that the sensor was successfully configured
+  Phoenix6Util.applyAndCheckConfiguration(sensor, config, alert);
   }
 }
