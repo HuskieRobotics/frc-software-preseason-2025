@@ -63,7 +63,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
 
   // Some state transitions are triggered by a timeout. Use Timer objects for that purpose.
   Timer inIndexingState = new Timer();
-  //Timer ejectingTimer = new Timer();
   
   // Use a linear filter to detect when the game piece has stalled against the hard stop. We want to
   // use a filter to eliminate false positives due to current spikes that may occur when the motor
@@ -75,7 +74,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
   // transition. Instead, those commands will change a variable which is monitored within the state
   // machine.
   private boolean releaseButtonPressed = false;
-  //private boolean ejectButtonPressed = false;
   private boolean isL1Mode = true; // true for L1, false for L2-4
 
   public Manipulator(ManipulatorIO io) {
@@ -106,7 +104,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       @Override
       void execute(Manipulator subsystem) {
 
-        // LEDs.getInstance().requestState(States.WAITING_FOR_GAME_PIECE); FIXME: The LED transition might not be necessary right now
         if(!subsystem.isL1Mode){
           subsystem.setState(State.WAITING_FOR_L2_4_CORAL_IN_FUNNEL);
         }
@@ -117,7 +114,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
         } // check if the game piece is detected by the manipulator
         else if (subsystem.isManipulatorFrontLeftBlocked() || subsystem.isManipulatorFrontCenterBlocked() || 
         subsystem.isManipulatorFrontRightBlocked() /*|| subsystem.isManipulatorBackCenterBlocked() */){ 
-          // FIXME: enumerate all the methods in the else if block.
           if(subsystem.isManipulatorFrontLeftBlocked() && !subsystem.isManipulatorFrontRightBlocked()){
             subsystem.setState(State.CENTERING_CORAL_IN_MANIPULATOR_RIGHT);
           } else if(subsystem.isManipulatorFrontRightBlocked() && !subsystem.isManipulatorFrontLeftBlocked()) {
@@ -129,8 +125,13 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
 
       @Override
-      void onExit(Manipulator subsystem) {}
-    },
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+    }
+  },
 
     WAITING_FOR_L2_4_CORAL_IN_FUNNEL {
       @Override
@@ -156,12 +157,16 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
 
         else if (subsystem.isManipulatorFrontLeftBlocked() || subsystem.isManipulatorFrontCenterBlocked() || 
         subsystem.isManipulatorFrontRightBlocked() || subsystem.isManipulatorBackCenterBlocked()){ 
-          // FIXME: enumerate all the methods in the else if block.
           subsystem.setState(State.INDEXING_CORAL_IN_MANIPULATOR_L2_4);
         }
       }
 
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
 
     CENTERING_CORAL_IN_MANIPULATOR_RIGHT {
@@ -202,7 +207,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
         }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
       
     CENTERING_CORAL_IN_MANIPULATOR_LEFT {
@@ -216,9 +226,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
         // If a state has a timeout, the timer must be restarted in the onEnter method.
         subsystem.inIndexingState.restart();
         subsystem.inIndexingState.start();
-
-        // // If a state has a filter, the filter must be reset in the onEnter method.
-        // subsystem.currentInAmps.reset();
       }
 
       @Override
@@ -241,7 +248,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
     }
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
 
     INDEXING_CORAL_IN_MANIPULATOR_L2_4 {
@@ -273,7 +285,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
     }
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     
     },
 
@@ -285,9 +302,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
 
       subsystem.setRightCoralMotorVoltage(
             Volts.of(subsystem.rightCoralMotorEjectVoltage.get()));
-
-        // If a state has a timeout, the timer must be restarted in the onEnter method.
-        //subsystem.ejectingTimer.restart(); 
       }
 
       @Override
@@ -301,7 +315,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
 
     CORAL_IN_MANIPULATOR_L1 {
@@ -311,9 +330,7 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
         subsystem.setRightCoralMotorVoltage(Volts.of(RIGHT_CORAL_MOTOR_LOWER_VOLTAGE_LIMIT));
 
         // move "wrist" to scoring position
-
-        //subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
-      } //Removing the wrist position for now since we don't care about algae.
+      } 
 
       @Override
       void execute(Manipulator subsystem) {
@@ -332,7 +349,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+      /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
   
     CORAL_IN_MANIPULATOR_L2_4 {
@@ -361,7 +383,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
 
     L1_PREPARE_TO_SCORE {
@@ -369,8 +396,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       void onEnter(Manipulator subsystem) {
         subsystem.setLeftCoralMotorVoltage(Volts.of(0.0));
         subsystem.setRightCoralMotorVoltage(Volts.of(0.0));
-        // move "wrist" to scoring position
-        //subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
       }
 
       @Override
@@ -390,7 +415,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
 
     L2_4_PREPARE_TO_SCORE {
@@ -398,8 +428,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
         void onEnter(Manipulator subsystem) {
           subsystem.setLeftCoralMotorVoltage(Volts.of(0.0));
           subsystem.setRightCoralMotorVoltage(Volts.of(0.0));
-          // move "wrist" to scoring position
-          //subsystem.setAlgaeMotorPosition(DEGREES.of(0.0)); // FIXME: set to appropriate scoring angle with a variable
         }
 
         @Override
@@ -419,7 +447,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
         }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
 
     RELEASE_CORAL {
@@ -442,7 +475,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     },
 
     UNINITIALIZED {
@@ -460,7 +498,12 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
       }
 
       @Override
-      void onExit(Manipulator subsystem) {}
+      void onExit(Manipulator subsystem) {
+        /**
+       * We chose to leave the onExit method empty as the onEnter and execute methods provide sufficient enough functionality.
+       * for logic that another method would be redundant. 
+       * **/
+      }
     };
 
     abstract void execute(Manipulator subsystem);
@@ -492,7 +535,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
     // testing mode to ensure that the state machine won't "fight" Phoenix Tuner.
     if (testingMode.get() == 1) {
       if (leftCoralMotorVoltage.get() != 0) {
-        //setManipulatorMotorVoltage(Volts.of(manipulatorMotorVoltage.get()));
         setLeftCoralMotorVoltage(Volts.of(leftCoralMotorCollectionVoltage.get()));
         setRightCoralMotorVoltage(Volts.of(rightCoralMotorCollectionVoltage.get()));
         setAlgaeMotorVoltage(Volts.of(algaeMotorCollectionVoltage.get()));
@@ -518,38 +560,29 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
     this.isL1Mode = isL1Mode;
   }
 
-  public void setL2_4Mode(boolean isL2_4Mode) {
-    this.isL1Mode = !isL2_4Mode;
+  public void setL2L4Mode(boolean isL2L4Mode) {
+    this.isL1Mode = !isL2L4Mode;
   }
 
   public boolean isIndexingCoralL1() {
     return state == State.CENTERING_CORAL_IN_MANIPULATOR_LEFT || state == State.CENTERING_CORAL_IN_MANIPULATOR_RIGHT;
   }
 
-  public boolean isIndexingCoralL2_L4(){
-    return state == State.INDEXING_CORAL_IN_MANIPULATOR_L2_4; //FIXME: replace with the state for indexing coral l2-l4
+  public boolean isIndexingCoralL2L4(){
+    return state == State.INDEXING_CORAL_IN_MANIPULATOR_L2_4;
   }
-
-  // If we have time, we can add functionality for indexing algae.
-  //public boolean isIndexingAlgae(){
-  //  return state == State. //FIXME: replace with necessary state
-  //}
 
   public boolean hasIndexedCoralL1() { 
     return state == State.CORAL_IN_MANIPULATOR_L1;
   }
 
-  public boolean hasIndexedCoralL2_L4(){
+  public boolean hasIndexedCoralL2L4(){
     return state == State.CORAL_IN_MANIPULATOR_L2_4;
   }
 
   // If we have time, we can add functionality for checking if algae has been indexed.
   // There will probably be no algae specific state, instead we can expand the capacities of 
   // the existing states to accommodate algae.
-
-  //public boolean hasIndexedAlgae(){
-  //  return state == State.
-  //}
 
   private void setState(State state) {
     this.state = state;
@@ -587,13 +620,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
   // The inputs class contains the state of the primary and secondary IR sensors. It is useful to
   // have both logged when checking for sensor reliability across matches. Which sensors are used
   // are determined based on the dashboard button.
-  private boolean isManipulatorIRBlocked() {
-    if (OISelector.getOperatorInterface().getEnablePrimaryIRSensorsTrigger().getAsBoolean()) {
-      return inputs.isManipulatorPrimaryIRBlocked;
-    } else {
-      return inputs.isManipulatorSecondaryIRBlocked;
-    }
-  }
 
   private boolean isManipulatorFrontLeftBlocked(){
     return inputs.isManipulatorFrontLeftBlocked;
@@ -609,10 +635,6 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
 
   private boolean isManipulatorBackCenterBlocked(){
     return inputs.isManipulatorBackCenterBlocked;
-  }
-
-  private boolean isManipulatorBackLeftBlocked(){ // algae sensor
-    return inputs.isManipulatorBackLeftBlocked;
   }
 
   
