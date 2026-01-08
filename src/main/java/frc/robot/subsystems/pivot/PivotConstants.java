@@ -4,21 +4,24 @@ public class PivotConstants {
 
   public static final String SUBSYSTEM_NAME = "Pivot";
 
-  public static final int PIVOT_LEAD_MOTOR_ID = 80; // FIXME: Update value
-  public static final int PIVOT_FOLLOWER_SAME_SIDE_ID = 81; // FIXME: Update value
-  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID = 82; // FIXME: Update value
-  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID_2 = 83; // FIXME: Update value
+  public static final int PIVOT_LEAD_MOTOR_ID = 80;
+  public static final int PIVOT_FOLLOWER_SAME_SIDE_ID = 81;
+  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID = 82;
+  public static final int PIVOT_FOLLOWER_OPPOSITE_SIDE_ID_2 = 83;
 
   public static final double ANGLE_MOTOR_GEAR_RATIO = 123.45679;
   public static final int SENSOR_TO_MECHANISM_RATIO = 1; // FIXME: Update value
 
-  public static final double LOWER_ANGLE_LIMIT = 0; // FIXME: Update value
-  public static final double UPPER_ANGLE_LIMIT = 90; // FIXME: Update value
-  public static final double ANGLE_MOTOR_PEAK_CURRENT_LIMIT = 40; // FIXME: Update value
-  public static final double ANGLE_MOTOR_CONTINUOUS_CURRENT_LIMIT = 30; // FIXME: Update value
+  public static final double STARTING_ANGLE =
+      0.0; // FIXME: Really update value! Especially this one!
+
+  public static final double LOWER_ANGLE_LIMIT = 0;
+  public static final double UPPER_ANGLE_LIMIT = 90;
+  public static final double ANGLE_MOTOR_PEAK_CURRENT_LIMIT = 40;
+  public static final double ANGLE_MOTOR_CONTINUOUS_CURRENT_LIMIT = 30;
   public static final double ANGLE_MOTOR_PEAK_CURRENT_DURATION = 1.0; // FIXME: Update value
   public static final double ANGLE_MOTOR_MANUAL_CONTROL_VOLTAGE = 2.0; // FIXME: Update value
-  public static final double ANGLE_TOLERANCE_DEGREES = 2.0; // FIXME: Update value
+  public static final double ANGLE_TOLERANCE_DEGREES = 2.0;
 
   public static final double MOTION_MAGIC_CRUISE_VELOCITY = 1000; // FIXME: Update value
 

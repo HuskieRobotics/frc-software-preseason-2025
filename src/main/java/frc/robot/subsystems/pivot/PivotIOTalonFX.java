@@ -187,7 +187,7 @@ public class PivotIOTalonFX implements PivotIO {
             PivotConstants.PIVOT_MASS_KG,
             PivotConstants.LOWER_ANGLE_LIMIT,
             PivotConstants.UPPER_ANGLE_LIMIT,
-            0, // FIXME: Should be startingAngle, no value in PivotConstants
+            PivotConstants.STARTING_ANGLE, // Previously was 0.0, moved to PivotConstants
             PivotConstants.SUBSYSTEM_NAME);
   }
 
@@ -287,13 +287,6 @@ public class PivotIOTalonFX implements PivotIO {
         kVExpo,
         kAExpo);
 
-    if (encoderOffset.hasChanged(hashCode())) {
-      CANcoderConfiguration config = new CANcoderConfiguration();
-      this.pivotEncoder.getConfigurator().refresh(config);
-      config.MagnetSensor.MagnetOffset = encoderOffset.get();
-      this.pivotEncoder.getConfigurator().apply(config);
-    }
-
     pivotSystemSim.updateSim();
   }
 
@@ -326,7 +319,7 @@ public class PivotIOTalonFX implements PivotIO {
     config.CurrentLimits.StatorCurrentLimit = ANGLE_MOTOR_PEAK_CURRENT_LIMIT;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
 
-    config.MotorOutput.NeutralMode = NeutralModeValue.Brake; //FIXME: Not sure if needed
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake; // FIXME: Not sure if needed
     config.Slot0.kP = kP.get();
     config.Slot0.kI = kI.get();
     config.Slot0.kD = kD.get();
@@ -338,7 +331,6 @@ public class PivotIOTalonFX implements PivotIO {
 
     config.MotionMagic.MotionMagicExpo_kV = kVExpo.get();
     config.MotionMagic.MotionMagicExpo_kA = kAExpo.get();
-
 
     config.MotorOutput.Inverted =
         ANGLE_MOTOR_INVERTED

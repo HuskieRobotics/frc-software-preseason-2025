@@ -58,5 +58,4 @@ public interface PivotIO {
 
   public default void updateInputs(PivotIOInputs inputs) {}
 
-  // public Object setAngleMotorVoltage(double in) {}
 }

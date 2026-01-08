@@ -23,7 +23,6 @@ public class Pivot extends SubsystemBase {
   private final LoggedTunableNumber pivotAngleDegrees =
       new LoggedTunableNumber("Pivot/AngleDegrees", LOWER_ANGLE_LIMIT);
 
-  // private final Debouncer atSetpointDebouncer = new Debouncer(0.1);
 
   private final SysIdRoutine sysIdRoutine =
       new SysIdRoutine(
@@ -38,8 +37,6 @@ public class Pivot extends SubsystemBase {
     this.io = io;
 
     SysIdRoutineChooser.getInstance().addOption("Pivot Voltage", sysIdRoutine);
-
-    // FaultReporter.getInstance().registerSystemCheck(SUBSYSTEM_NAME, getSystemCheckCommand());
   }
 
   @Override
