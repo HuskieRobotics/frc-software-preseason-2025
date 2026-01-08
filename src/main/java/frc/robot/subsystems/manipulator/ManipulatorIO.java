@@ -11,9 +11,10 @@ public interface ManipulatorIO {
 
     //This is recording the values of the left, right, and coral motors
 
-    //angle for "wrist position"
+    //angle for "wrist position" 
+    // We don't need this as we will not be implementing the wrist position right now
     double algaeMotorAngleDeg = 0;
-
+    
     //stator
     double leftCoralMotorStatorCurrentAmps = 0;
     double rightCoralMotorStatorCurrentAmps = 0;
