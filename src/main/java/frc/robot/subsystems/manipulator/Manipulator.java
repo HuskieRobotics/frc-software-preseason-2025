@@ -27,27 +27,29 @@ public class Manipulator extends SubsystemBase {
   // all subsystems create the AutoLogged version of their IO inputs class
   private final ManipulatorIOInputsAutoLogged inputs = new ManipulatorIOInputsAutoLogged();
 
-  // Coral Motor 1 (for blue and green wheels) Tunable Numbers
+  // left Coral Motor (for blue and green wheels) Tunable Numbers      new LoggedTunableNumber("Manipulator/LeftCoralMotorLowerVoltageLimit", 0.0);
   private final LoggedTunableNumber testingMode =
       new LoggedTunableNumber("Manipulator/TestingMode", 0);
   private final LoggedTunableNumber leftCoralMotorVoltage =
-      new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
+      new LoggedTunableNumber("Manipulator/LeftCoralMotorVoltage", 0);
   public final LoggedTunableNumber leftCoralMotorCollectionVoltage =
-      new LoggedTunableNumber("Manipulator/CollectionVoltage", LEFT_CORAL_MOTOR_COLLECTION_VOLTAGE);
+      new LoggedTunableNumber("Manipulator/LeftCoralMotorCollectionVoltage", LEFT_CORAL_MOTOR_COLLECTION_VOLTAGE);
   public final LoggedTunableNumber leftCoralMotorReleaseVoltage =
-      new LoggedTunableNumber("Manipulator/ReleaseVoltage", LEFT_CORAL_MOTOR_RELEASE_VOLTAGE);
+      new LoggedTunableNumber("Manipulator/LeftCoralMotorReleaseVoltage", LEFT_CORAL_MOTOR_RELEASE_VOLTAGE);
   public final LoggedTunableNumber leftCoralMotorEjectVoltage =
-      new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", LEFT_CORAL_MOTOR_EJECT_VOLTAGE);
-  // Coral Motor 2 (for blue and green rollers) Tunable Numbers
+      new LoggedTunableNumber("Manipulator/LeftCoralMotorEjectVoltage", LEFT_CORAL_MOTOR_EJECT_VOLTAGE);
+  
+      // right Coral Motor (for blue and green rollers) Tunable Numbers
 private final LoggedTunableNumber rightCoralMotorVoltage =
-  new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
+  new LoggedTunableNumber("Manipulator/RightCoralMotorVoltage", 0);
 public final LoggedTunableNumber rightCoralMotorCollectionVoltage =
-  new LoggedTunableNumber("Manipulator/CollectionVoltage", RIGHT_CORAL_MOTOR_COLLECTION_VOLTAGE);
+  new LoggedTunableNumber("Manipulator/RightCoralMotorCollectionVoltage", RIGHT_CORAL_MOTOR_COLLECTION_VOLTAGE);
 public final LoggedTunableNumber rightCoralMotorReleaseVoltage =
-  new LoggedTunableNumber("Manipulator/ReleaseVoltage", RIGHT_CORAL_MOTOR_RELEASE_VOLTAGE);
+  new LoggedTunableNumber("Manipulator/RightCoralMotorReleaseVoltage", RIGHT_CORAL_MOTOR_RELEASE_VOLTAGE);
 public final LoggedTunableNumber rightCoralMotorEjectVoltage =
-  new LoggedTunableNumber("Manipulator/Indexer/EjectVoltage", RIGHT_CORAL_MOTOR_EJECT_VOLTAGE);
-// Algae Motor (black rollers) Tunable Numbers;
+  new LoggedTunableNumber("Manipulator/RightCoralMotorEjectVoltage", RIGHT_CORAL_MOTOR_EJECT_VOLTAGE);
+
+  // Algae Motor (black rollers) Tunable Numbers;
   private final LoggedTunableNumber algaeMotorVoltage =
       new LoggedTunableNumber("Manipulator/MotorVoltage", 0);
   public final LoggedTunableNumber algaeMotorCollectionVoltage =
@@ -534,7 +536,7 @@ public final LoggedTunableNumber rightCoralMotorEjectVoltage =
     // specified testing value. Similarly, if testing the mechanism using Phoenix Tuner, enable
     // testing mode to ensure that the state machine won't "fight" Phoenix Tuner.
     if (testingMode.get() == 1) {
-      if (leftCoralMotorVoltage.get() != 0) {
+      if (leftCoralMotorVoltage.get() != 0 && rightCoralMotorVoltage.get() != 0 && algaeMotorVoltage.get() != 0) {
         setLeftCoralMotorVoltage(Volts.of(leftCoralMotorCollectionVoltage.get()));
         setRightCoralMotorVoltage(Volts.of(rightCoralMotorCollectionVoltage.get()));
         setAlgaeMotorVoltage(Volts.of(algaeMotorCollectionVoltage.get()));

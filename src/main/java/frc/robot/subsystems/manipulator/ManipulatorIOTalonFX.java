@@ -36,9 +36,6 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
   private VoltageOut rightVoltageRequest;
   private VoltageOut algaeVoltageRequest;
 
-  // import for the canrange sensors
-  private final CANBus kCANBus = new CANBus("rio"); //FIXME: come back to this later
-
   // declarations for the canrange sensors below
   private final CANrange frontLeft;
   private final CANrange frontCenter;
@@ -108,10 +105,10 @@ public class ManipulatorIOTalonFX implements ManipulatorIO {
         new TalonFX(MANIPULATOR_RIGHT_MOTOR_ID, RobotConfig.getInstance().getCANBusName());
     algaeMotor = new TalonFX(MANIPULATOR_ALGAE_MOTOR_ID, RobotConfig.getInstance().getCANBusName());
 
-    frontLeft = new CANrange(FRONT_LEFT_SENSOR_ID, kCANBus);
-    frontCenter = new CANrange(FRONT_CENTER_SENSOR_ID, kCANBus);
-    frontRight = new CANrange(FRONT_RIGHT_SENSOR_ID, kCANBus);
-    backCenter = new CANrange(BACK_CENTER_SENSOR_ID, kCANBus);
+    frontLeft = new CANrange(FRONT_LEFT_SENSOR_ID, RobotConfig.getInstance().getCANBusName());
+    frontCenter = new CANrange(FRONT_CENTER_SENSOR_ID, RobotConfig.getInstance().getCANBusName());
+    frontRight = new CANrange(FRONT_RIGHT_SENSOR_ID, RobotConfig.getInstance().getCANBusName());
+    backCenter = new CANrange(BACK_CENTER_SENSOR_ID, RobotConfig.getInstance().getCANBusName());
 
     leftVoltageRequest = new VoltageOut(0.0);
     rightVoltageRequest = new VoltageOut(0.0);
